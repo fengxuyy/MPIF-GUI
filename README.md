@@ -193,17 +193,6 @@ This application addresses critical needs in materials chemistry research:
 - **Community Standards**: Promotes adoption of MPIF across research groups
 - **Machine Learning**: Structured data supports ML applications in materials discovery
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Submit a pull request
-
-## 📄 License
-
-This project is developed for the materials science research community. See LICENSE file for details.
-
 ## 🙏 Acknowledgments
 
 - **Original MPIF Specification**: Shun Tokuda and Damian Jędrzejowski
@@ -212,5 +201,3 @@ This project is developed for the materials science research community. See LICE
 - **Tailwind CSS**: Styling framework
 
 ---
-
-**Built for researchers, by researchers** 🧪⚗️🔬 
