@@ -138,6 +138,8 @@ export interface ProcedureStep {
 export interface Characterization {
   pxrd?: PXRDData;
   tga?: TGAData;
+  adsorption?: AdsorptionData;
+  desorption?: DesorptionData;
   aif?: string;
 }
 
@@ -154,6 +156,34 @@ export interface TGAData {
   data: Array<{
     temperature: number;
     weightPercent: number;
+  }>;
+}
+
+export interface AdsorptionData {
+  experimentalTemperature?: number;
+  experimentalMethod?: string;
+  sampleMass?: number;
+  sampleId?: string;
+  materialId?: string;
+  sampleInfo?: string;
+  units?: {
+    temperature?: string;
+    pressure?: string;
+    mass?: string;
+    loading?: string;
+  };
+  data: Array<{
+    pressure: number;
+    p0: number;
+    amount: number;
+  }>;
+}
+
+export interface DesorptionData {
+  data: Array<{
+    pressure: number;
+    p0: number;
+    amount: number;
   }>;
 }
 

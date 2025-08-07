@@ -7,7 +7,9 @@ import {
   SynthesisDetails,
   Characterization,
   PXRDData,
-  TGAData
+  TGAData,
+  AdsorptionData,
+  DesorptionData
 } from '@/types/mpif';
 
 export class MPIFParser {
@@ -17,7 +19,8 @@ export class MPIFParser {
    * Parse MPIF file content to structured data
    */
   public parse(content: string): MPIFData {
-    this.lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    // Keep all lines including empty ones for proper parsing of text blocks
+    this.lines = content.split('\n').map(line => line.trim());
 
     const data: MPIFData = {
       metadata: this.parseMetadata(),
@@ -284,51 +287,192 @@ export class MPIFParser {
     const characterization: Characterization = {};
 
     // Parse PXRD data
-    const pxrdBlock = this.extractTextBlock('_mpif_pxrd_data');
-    if (pxrdBlock) {
-      const pxrdLines = pxrdBlock.split('\n');
+    const pxrdStartIndex = this.findLineIndex('_mpif_pxrd_data');
+    if (pxrdStartIndex !== -1) {
       const pxrd: Partial<PXRDData> = {
         data: []
       };
 
       let inLoopData = false;
-      for (const line of pxrdLines) {
-        if (line.includes('_mpif_pxrd_source')) {
+      let foundDataEnd = false;
+      
+      for (let i = pxrdStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
+        const line = this.lines[i];
+        
+        if (line === ';' && inLoopData) {
+          foundDataEnd = true;
+          break;
+        } else if (line.includes('_mpif_pxrd_source')) {
           pxrd.source = line.split('\t')[1]?.replace(/'/g, '') as any;
         } else if (line.includes('_mpif_pxrd_lambda')) {
           pxrd.wavelength = parseFloat(line.split('\t')[1]);
-        } else if (line.includes('_pxrd_2theta')) {
+        } else if (line.includes('_pxrd_2theta') || line.includes('_pxrd_intensity')) {
           inLoopData = true;
-        } else if (inLoopData && line.includes('\t')) {
-          const [twoTheta, intensity] = line.split('\t');
-          pxrd.data!.push({
-            twoTheta: parseFloat(twoTheta),
-            intensity: parseFloat(intensity)
-          });
+        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
+          const parts = line.split('\t');
+          if (parts.length >= 2) {
+            const twoTheta = parseFloat(parts[0]);
+            const intensity = parseFloat(parts[1]);
+            if (!isNaN(twoTheta) && !isNaN(intensity)) {
+              pxrd.data!.push({
+                twoTheta,
+                intensity
+              });
+            }
+          }
+        } else if (line.startsWith('_mpif_') && inLoopData) {
+          // New section started, stop parsing PXRD
+          foundDataEnd = true;
         }
       }
-      characterization.pxrd = pxrd as PXRDData;
+      
+      if (pxrd.data!.length > 0) {
+        characterization.pxrd = pxrd as PXRDData;
+      }
     }
 
     // Parse TGA data
-    const tgaBlock = this.extractTextBlock('_mpif_tga_data');
-    if (tgaBlock) {
-      const tgaLines = tgaBlock.split('\n');
+    const tgaStartIndex = this.findLineIndex('_mpif_tga_data');
+    if (tgaStartIndex !== -1) {
       const tga: TGAData = { data: [] };
       
       let inLoopData = false;
-      for (const line of tgaLines) {
-        if (line.includes('_tga_temperature_celcius')) {
+      let foundDataEnd = false;
+      
+      for (let i = tgaStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
+        const line = this.lines[i];
+        
+        if (line === ';' && inLoopData) {
+          foundDataEnd = true;
+          break;
+        } else if (line.includes('_tga_temperature_celcius') || line.includes('_tga_weight_percent')) {
           inLoopData = true;
-        } else if (inLoopData && line.includes('\t')) {
-          const [temperature, weightPercent] = line.split('\t');
-          tga.data.push({
-            temperature: parseFloat(temperature),
-            weightPercent: parseFloat(weightPercent)
-          });
+        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
+          const parts = line.split('\t');
+          if (parts.length >= 2) {
+            const temperature = parseFloat(parts[0]);
+            const weightPercent = parseFloat(parts[1]);
+            if (!isNaN(temperature) && !isNaN(weightPercent)) {
+              tga.data.push({
+                temperature,
+                weightPercent
+              });
+            }
+          }
+        } else if (line.startsWith('_mpif_') && inLoopData) {
+          // New section started, stop parsing TGA
+          foundDataEnd = true;
         }
       }
-      characterization.tga = tga;
+      
+      if (tga.data.length > 0) {
+        characterization.tga = tga;
+      }
+    }
+
+    // Parse Adsorption data
+    const adsorptionStartIndex = this.findLineIndex('_adsorp_pressure');
+    if (adsorptionStartIndex !== -1) {
+      const adsorption: Partial<AdsorptionData> = {
+        data: [],
+        units: {}
+      };
+
+      // Parse metadata before the loop
+      for (let i = 0; i < adsorptionStartIndex; i++) {
+        const line = this.lines[i];
+        if (line.includes('_exptl_temperature')) {
+          adsorption.experimentalTemperature = parseFloat(line.split('\t')[1]);
+        } else if (line.includes('_exptl_method')) {
+          adsorption.experimentalMethod = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_adsnt_sample_mass')) {
+          adsorption.sampleMass = parseFloat(line.split('\t')[1]);
+        } else if (line.includes('_adsnt_sample_id')) {
+          adsorption.sampleId = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_adsnt_material_id')) {
+          adsorption.materialId = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_adsnt_info')) {
+          adsorption.sampleInfo = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_units_temperature')) {
+          adsorption.units!.temperature = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_units_pressure')) {
+          adsorption.units!.pressure = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_units_mass')) {
+          adsorption.units!.mass = line.split('\t')[1]?.replace(/'/g, '');
+        } else if (line.includes('_units_loading')) {
+          adsorption.units!.loading = line.split('\t')[1]?.replace(/'/g, '');
+        }
+      }
+
+      let inLoopData = false;
+      let foundDataEnd = false;
+      
+      for (let i = adsorptionStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
+        const line = this.lines[i];
+        
+        if (line.includes('_adsorp_p0') || line.includes('_adsorp_amount')) {
+          inLoopData = true;
+        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
+          const parts = line.split('\t');
+          if (parts.length >= 3) {
+            const pressure = parseFloat(parts[0]);
+            const p0 = parseFloat(parts[1]);
+            const amount = parseFloat(parts[2]);
+            if (!isNaN(pressure) && !isNaN(p0) && !isNaN(amount)) {
+              adsorption.data!.push({
+                pressure,
+                p0,
+                amount
+              });
+            }
+          }
+        } else if (line.startsWith('_desorp_') || line.startsWith('#') || line === '') {
+          // New section started, stop parsing adsorption
+          foundDataEnd = true;
+        }
+      }
+      
+      if (adsorption.data!.length > 0) {
+        characterization.adsorption = adsorption as AdsorptionData;
+      }
+    }
+
+    // Parse Desorption data
+    const desorptionStartIndex = this.findLineIndex('_desorp_pressure');
+    if (desorptionStartIndex !== -1) {
+      const desorption: DesorptionData = { data: [] };
+      
+      let inLoopData = false;
+      let foundDataEnd = false;
+      
+      for (let i = desorptionStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
+        const line = this.lines[i];
+        
+        if (line.includes('_desorp_p0') || line.includes('_desorp_amount')) {
+          inLoopData = true;
+        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
+          const parts = line.split('\t');
+          if (parts.length >= 3) {
+            const pressure = parseFloat(parts[0]);
+            const p0 = parseFloat(parts[1]);
+            const amount = parseFloat(parts[2]);
+            if (!isNaN(pressure) && !isNaN(p0) && !isNaN(amount)) {
+              desorption.data.push({
+                pressure,
+                p0,
+                amount
+              });
+            }
+          }
+        } else if (line.startsWith('_') && !line.startsWith('_desorp_') || line.startsWith('#')) {
+          // New section started, stop parsing desorption
+          foundDataEnd = true;
+        }
+      }
+      
+      if (desorption.data.length > 0) {
+        characterization.desorption = desorption;
+      }
     }
 
     // Parse AIF data
@@ -354,17 +498,25 @@ export class MPIFParser {
     // Skip header lines to get to data
     let dataStart = loopStart;
     for (let i = loopStart; i < this.lines.length; i++) {
-      if (!this.lines[i].startsWith('_mpif_') && !this.lines[i].startsWith('loop_')) {
+      const line = this.lines[i];
+      if (!line.startsWith('_mpif_') && !line.startsWith('loop_') && line.trim() !== '') {
         dataStart = i;
         break;
       }
     }
 
-    for (let i = 0; i < count; i++) {
-      const lineIndex = dataStart + i;
-      if (lineIndex >= this.lines.length) break;
+    let itemsParsed = 0;
+    for (let i = dataStart; i < this.lines.length && itemsParsed < count; i++) {
+      const line = this.lines[i];
       
-      const values = this.lines[lineIndex].split('\t');
+      // Stop if we hit a new section
+      if (line.startsWith('_mpif_') || line.startsWith('#') || line === '') {
+        break;
+      }
+      
+      const values = line.split('\t');
+      if (values.length < fields.length) continue; // Skip malformed lines
+      
       const item: any = {};
       
       fields.forEach((field, index) => {
@@ -375,11 +527,14 @@ export class MPIFParser {
           const numValue = parseFloat(value);
           item[field] = isNaN(numValue) ? undefined : numValue;
         } else {
-          item[field] = value === '?' || value === '-' ? undefined : value;
+          // Clean up string values
+          value = value.trim();
+          item[field] = (value === '?' || value === '-' || value === '') ? undefined : value;
         }
       });
       
       results.push(item);
+      itemsParsed++;
     }
 
     return results;
@@ -399,6 +554,7 @@ export class MPIFParser {
 
     let content = '';
     let inBlock = false;
+    let foundStart = false;
     
     for (let i = startIndex + 1; i < this.lines.length; i++) {
       const line = this.lines[i];
@@ -408,13 +564,33 @@ export class MPIFParser {
           break; // End of block
         } else {
           inBlock = true; // Start of block
+          foundStart = true;
         }
       } else if (inBlock) {
         content += (content ? '\n' : '') + line;
+      } else if (!foundStart && line.trim() !== '' && !line.startsWith('_') && !line.startsWith('#')) {
+        // Handle cases where text block doesn't start with semicolon
+        content += (content ? '\n' : '') + line;
+        // Look ahead to see if we encounter a semicolon or new section
+        let nextLineIndex = i + 1;
+        while (nextLineIndex < this.lines.length) {
+          const nextLine = this.lines[nextLineIndex];
+          if (nextLine === ';') {
+            i = nextLineIndex; // Skip to the closing semicolon
+            break;
+          } else if (nextLine.startsWith('_') || nextLine.startsWith('#')) {
+            i = nextLineIndex - 1; // Step back one line
+            break;
+          } else if (nextLine.trim() !== '') {
+            content += '\n' + nextLine;
+          }
+          nextLineIndex++;
+        }
+        break;
       }
     }
 
-    return content || undefined;
+    return content.trim() || undefined;
   }
 
   private findLine(pattern: RegExp): RegExpMatchArray | null {

@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, File, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 // import { useMPIFStore } from '@/store/mpifStore';
 
@@ -110,68 +109,60 @@ export function FileUpload({ onFileLoad, className }: FileUploadProps) {
   };
 
   return (
-    <Card className={cn('w-full', className)}>
-      <CardContent className="p-6">
-        <div
-          {...getRootProps()}
-          className={cn(
-            'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
-            'hover:border-primary/50 hover:bg-accent/50',
-            isDragActive && 'border-primary bg-primary/5',
-            isDragReject && 'border-red-500 bg-red-50 dark:bg-red-900/10',
-            uploadStatus === 'error' && 'border-red-500',
-            uploadStatus === 'success' && 'border-green-500'
-          )}
-        >
-          <input {...getInputProps()} />
-          
-          <div className="flex flex-col items-center space-y-4">
-            {getStatusIcon()}
-            
-            <div className="space-y-2">
-              <p className={cn('text-lg font-medium', getStatusColor())}>
-                {getStatusMessage()}
-              </p>
-              
-              {uploadStatus === 'idle' && (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Supports .mpif files up to 10MB
-                  </p>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    <File className="h-4 w-4" />
-                    <span>MPIF (Material Preparation Information File)</span>
-                  </div>
-                </>
-              )}
-              
-              {uploadStatus === 'error' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setUploadStatus('idle');
-                    setErrorMessage('');
-                  }}
-                >
-                  Try Again
-                </Button>
-              )}
-            </div>
+    <div
+      {...getRootProps()}
+      className={cn(
+        'relative border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-200',
+        'hover:border-primary/60 hover:bg-primary/5',
+        isDragActive && 'border-primary bg-primary/10 scale-105',
+        isDragReject && 'border-red-500 bg-red-50 dark:bg-red-900/10',
+        uploadStatus === 'error' && 'border-red-500 bg-red-50 dark:bg-red-900/10',
+        uploadStatus === 'success' && 'border-green-500 bg-green-50 dark:bg-green-900/10',
+        uploadStatus === 'loading' && 'border-blue-500 bg-blue-50 dark:bg-blue-900/10',
+        className
+      )}
+    >
+      <input {...getInputProps()} />
+      
+      {/* Icon */}
+      <div className="mb-4">
+        {getStatusIcon()}
+      </div>
+      
+      {/* Main Message */}
+      <h3 className={cn('text-xl font-semibold mb-2', getStatusColor())}>
+        {getStatusMessage()}
+      </h3>
+      
+      {/* Details */}
+      {uploadStatus === 'idle' && (
+        <div className="space-y-2">
+          <p className="text-muted-foreground">
+            Supports .mpif files up to 10MB
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <File className="h-4 w-4" />
+            <span>MPIF (Material Preparation Information File)</span>
           </div>
         </div>
-        
-        {uploadStatus === 'idle' && (
-          <div className="mt-4 text-center">
-            <Button variant="outline" size="sm">
-              <File className="h-4 w-4 mr-2" />
-              Browse Files
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+      
+      {/* Error Action */}
+      {uploadStatus === 'error' && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setUploadStatus('idle');
+            setErrorMessage('');
+          }}
+        >
+          Try Again
+        </Button>
+      )}
+    </div>
   );
 }
 

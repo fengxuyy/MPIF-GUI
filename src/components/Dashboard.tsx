@@ -25,6 +25,7 @@ import { SynthesisGeneralForm } from './forms/SynthesisGeneralForm';
 import { SynthesisDetailsForm } from './forms/SynthesisDetailsForm';
 import { CharacterizationForm } from './forms/CharacterizationForm';
 import { MPIFData } from '@/types/mpif';
+import { parseMPIF, stringifyMPIF } from '@/utils/mpifParser';
 
 interface DashboardProps {
   className?: string;
@@ -146,7 +147,7 @@ export function Dashboard({ className }: DashboardProps) {
         return;
       }
       
-      const content = 'Sample MPIF content'; // This would use stringifyMPIF(mpifData)
+      const content = stringifyMPIF(mpifData);
       const exportFileName = fileName || 'untitled.mpif';
       
       downloadFile(content, exportFileName, 'text/plain');
@@ -227,66 +228,23 @@ export function Dashboard({ className }: DashboardProps) {
     setError(undefined);
     
     try {
-      // This would use parseMPIF(content) in real implementation
-      const mockData: MPIFData = { 
-        metadata: { 
-          dataName: filename.replace('.mpif', ''),
-          creationDate: new Date().toISOString().split('T')[0],
-          generatorVersion: '1.0.0',
-          procedureStatus: 'test'
-        },
-        authorDetails: {
-          name: '',
-          email: '',
-          orcid: ''
-        },
-        productInfo: {
-          type: 'porous framework material',
-          commonName: '',
-          state: 'solid',
-          color: '',
-          handlingAtmosphere: 'air'
-        },
-        synthesisGeneral: {
-          performedDate: new Date().toISOString().split('T')[0],
-          labTemperature: 25,
-          labHumidity: 50,
-          reactionType: 'mix',
-          reactionTemperature: 25,
-          temperatureController: 'ambient',
-          reactionTime: 24,
-          reactionTimeUnit: 'h',
-          reactionAtmosphere: 'air',
-          reactionContainer: '',
-          productAmount: 0,
-          productAmountUnit: 'mg',
-          scale: 'milligram'
-        },
-        synthesisDetails: {
-          substrates: [],
-          solvents: [],
-          vessels: [],
-          hardware: [],
-          steps: []
-        },
-        characterization: {}
-      };
+      // Parse the actual MPIF content
+      const parsedData = parseMPIF(content);
+      console.log('Parsed MPIF data:', parsedData);
       
-      setMpifData(mockData);
+      setMpifData(parsedData);
       setFileName(filename);
       setLastSaved(new Date());
       setIsEditing(true);
       setHasUnsavedChanges(false);
       setCurrentSection('metadata');
       
-      // Add some mock validation errors for demonstration
-      setValidationErrors([
-        { field: 'authorName', message: 'Author name is required', section: 'authorDetails' },
-        { field: 'productName', message: 'Product name is required', section: 'productInfo' }
-      ]);
+      // Clear validation errors since we have real data
+      setValidationErrors([]);
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load file');
+      console.error('Failed to parse MPIF file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to parse MPIF file');
     } finally {
       setIsLoading(false);
     }
@@ -501,7 +459,7 @@ export function Dashboard({ className }: DashboardProps) {
             
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" onClick={handleResetData}>
-                New File
+                Upload File
               </Button>
               <Button size="sm" onClick={handleCreateNewMPIF}>
                 <Upload className="h-4 w-4 mr-2" />
@@ -525,15 +483,6 @@ export function Dashboard({ className }: DashboardProps) {
                 </CardHeader>
                 <CardContent>
                   <FileUpload onFileLoad={handleFileLoad} />
-                  
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Or start with a blank template
-                    </p>
-                    <Button onClick={handleCreateNewMPIF}>
-                      Create New MPIF
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             </div>
