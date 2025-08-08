@@ -116,6 +116,152 @@ npm run dev
 
 3. **Open browser** to http://localhost:5173
 
+## 🐳 Docker Deployment
+
+### Prerequisites
+- Docker installed on your system
+- Basic familiarity with Docker commands
+
+### Quick Start with Docker
+
+1. **Build the Docker image**:
+```bash
+docker build -t msif-gui .
+```
+
+2. **Run the container**:
+```bash
+docker run -p 3000:80 msif-gui
+```
+
+3. **Access the application**:
+   - Open your browser to http://localhost:3000
+
+### Docker Deployment Options
+
+#### Development Mode
+```bash
+# Run in detached mode (background)
+docker run -d -p 3000:80 --name msif-dashboard msif-gui
+
+# View logs
+docker logs msif-dashboard
+
+# Stop the container
+docker stop msif-dashboard
+
+# Remove the container
+docker rm msif-dashboard
+```
+
+#### Production Deployment
+```bash
+# Run on standard HTTP port
+docker run -d -p 80:80 --name msif-production msif-gui
+
+# Run with custom port
+docker run -d -p 8080:80 --name msif-custom-port msif-gui
+
+# Run with environment variables
+docker run -d -p 3000:80 -e NODE_ENV=production --name msif-gui-prod msif-gui
+```
+
+#### Docker Compose (Recommended for Production)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+services:
+  msif-gui:
+    build: .
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    container_name: msif-dashboard
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+```
+
+Then run:
+```bash
+# Start the service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+```
+
+### Docker Features
+
+#### Multi-Stage Build
+- **Build Stage**: Uses Node.js 18 Alpine to compile TypeScript and build the Vite application
+- **Production Stage**: Uses lightweight Nginx Alpine (~15MB) to serve static files
+
+#### Optimized Configuration
+- **Security Headers**: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+- **Gzip Compression**: Automatic compression for better performance
+- **SPA Support**: Proper routing configuration for React Router
+- **Health Checks**: Built-in health monitoring
+
+#### Performance Features
+- **Small Image Size**: Multi-stage build reduces final image to ~25MB
+- **Fast Startup**: Nginx starts in <2 seconds
+- **Caching**: Optimized Docker layer caching for faster rebuilds
+
+### Troubleshooting Docker Deployment
+
+#### Common Issues
+
+1. **Port already in use**:
+```bash
+# Check what's using the port
+lsof -i :3000
+
+# Use a different port
+docker run -p 3001:80 msif-gui
+```
+
+2. **Build failures**:
+```bash
+# Clean build without cache
+docker build --no-cache -t msif-gui .
+
+# Check build logs
+docker build -t msif-gui . --progress=plain
+```
+
+3. **Container won't start**:
+```bash
+# Check container logs
+docker logs msif-gui
+
+# Run interactively for debugging
+docker run -it --entrypoint /bin/sh msif-gui
+```
+
+#### Updating the Application
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Rebuild and restart
+docker build -t msif-gui .
+docker stop msif-dashboard
+docker rm msif-dashboard
+docker run -d -p 3000:80 --name msif-dashboard msif-gui
+```
+
 ### Usage
 
 1. **Upload MPIF File**: Drag and drop a .mpif file or click to browse
