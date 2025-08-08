@@ -67,7 +67,7 @@ _mpif_substrate_supplier
 _mpif_substrate_purity_percent
 _mpif_substrate_cas
 _mpif_substrate_smiles
-R1	metal	1	μmol	10	mg	Ardrich	98	12-3456	?
+R1	metal	1	umol	10	mg	Ardrich	98	12-3456	?
 R2	ligand	2	mmol	33	mL	BLDPharm	99	78-9	?
 
 _mpif_solvent_number	2
@@ -83,7 +83,7 @@ _mpif_solvent_purity_percent
 _mpif_solvent_cas
 _mpif_solvent_smiles
 S1	Methanol	1.0	mol	100	mL	TCI	98	12-3456	?
-S2	DMF	2.00	μmol	300	mL	ThermoFischer	99	78-9	?
+S2	DMF	2.00	umol	300	mL	ThermoFischer	99	78-9	?
 
 _mpif_vessel_number	2
 loop_
@@ -96,7 +96,7 @@ _mpif_vessel_supplier
 _mpif_vessel_purpose
 _mpif_vessel_note
 V1	50	mL	PP	Centrifuge-tube	-	Storing	-
-V2	20	mL	glass	Vial	-	Reaction	This can be substituted with any glass vessel
+V2	20	mL	glass	Vial	-	Reaction	'This can be substituted with any glass vessel'
 
 _mpif_hardware_number	3
 loop_
@@ -106,9 +106,9 @@ _mpif_hardware_general_name
 _mpif_hardware_product_name
 _mpif_hardware_supplier
 _mpif_hardware_note
-H1	Stirring/Mixing	ultrasonic bath	YDH12	Merck	-
-H2	Heating/Cooling	convection oven	BV438-X	ThermoFischer	-
-H3	Drying	vacuum oven	BAR-435458-RTS	ThermoFischer	-
+H1	Stirring/Mixing	'ultrasonic bath'	YDH12	Merck	-
+H2	Heating/Cooling	'convection oven'	BV438-X	ThermoFischer	-
+H3	Drying	'vacuum oven'	BAR-435458-RTS	ThermoFischer	-
 
 _mpif_procedure_number	7
 loop_
