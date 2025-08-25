@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Characterization, PXRDData, TGAData } from '@/types/mpif';
 import { useState } from 'react';
 import { DataVisualization } from '../DataVisualization';
+import { AIFFileUpload } from '../ui/AIFFileUpload';
 
 interface CharacterizationFormProps {
   data?: Characterization;
@@ -16,6 +17,8 @@ interface CharacterizationFormProps {
 export function CharacterizationForm({ data, onSave, onUnsavedChange }: CharacterizationFormProps) {
   const [pxrdDataText, setPxrdDataText] = useState('');
   const [tgaDataText, setTgaDataText] = useState('');
+  const [aifContent, setAifContent] = useState(data?.aif || '');
+  const [aifFileName, setAifFileName] = useState('');
 
   const {
     register,
@@ -26,14 +29,14 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
   } = useForm<Characterization>({
     defaultValues: data || {
       pxrd: undefined,
-      tga: undefined,
-      aif: ''
+      tga: undefined
     }
   });
 
   // Watch for changes to trigger unsaved state
   const watchedFields = watch();
-  if (isDirty) {
+  const hasChanges = isDirty || aifContent !== (data?.aif || '');
+  if (hasChanges) {
     onUnsavedChange();
   }
 
@@ -94,7 +97,18 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       };
     }
 
+    // Include AIF content if provided
+    if (aifContent.trim()) {
+      formData.aif = aifContent;
+    }
+
     onSave(formData);
+  };
+
+  const handleAifFileLoad = (content: string, filename: string) => {
+    setAifContent(content);
+    setAifFileName(filename);
+    onUnsavedChange();
   };
 
   return (
@@ -195,20 +209,31 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
         <CardHeader>
           <CardTitle>Gas Adsorption Data</CardTitle>
           <CardDescription>
-            Adsorption isotherm file path or data reference
+            Upload adsorption isotherm file (AIF format)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="aif">AIF File Path/Reference</Label>
-            <Input
-              id="aif"
-              {...register('aif')}
-              placeholder="path/to/adsorption_data.aif or reference to external data"
+            <Label>AIF File Upload</Label>
+            <AIFFileUpload 
+              onFileLoad={handleAifFileLoad}
+              currentFileName={aifFileName}
             />
             <p className="text-xs text-muted-foreground">
-              Reference to adsorption isotherm file or external data source
+              Upload an Adsorption Information Format (.aif) file containing gas adsorption data
             </p>
+            {aifContent && (
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <p className="text-xs font-medium mb-1">File Content Preview:</p>
+                <p className="text-xs font-mono text-muted-foreground">
+                  {aifContent.split('\n').slice(0, 3).join('\n')}
+                  {aifContent.split('\n').length > 3 && '\n...'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {aifContent.split('\n').length} lines, {aifContent.length} characters
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -279,7 +304,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       )}
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={!isDirty}>
+        <Button type="submit" disabled={!hasChanges}>
           Save Characterization Data
         </Button>
       </div>

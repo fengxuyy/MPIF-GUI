@@ -73,7 +73,13 @@ export class MPIFParser {
     result += `_mpif_product_state\t'${data.productInfo.state}'\n`;
     result += `_mpif_product_color\t'${data.productInfo.color}'\n`;
     result += `_mpif_product_handling_atmosphere\t'${data.productInfo.handlingAtmosphere}'\n`;
-    result += `_mpif_product_handling_note\n;\n${data.productInfo.handlingNote || ''}\n;\n\n`;
+    result += `_mpif_product_handling_note\n;\n${data.productInfo.handlingNote || ''}\n;\n`;
+    
+    // Add CIF data if available
+    if (data.productInfo.cif) {
+      result += `_mpif_product_cif\n;\n${data.productInfo.cif}\n;\n`;
+    }
+    result += '\n';
 
     // Section 3: Synthesis General Information
     result += '#Section 3: Synthesis General Information\n';
@@ -222,6 +228,8 @@ export class MPIFParser {
   }
 
   private parseProductInfo(): ProductInfo {
+    const cifData = this.extractTextBlock('_mpif_product_cif');
+    
     return {
       type: this.extractValue('_mpif_product_type')?.replace(/'/g, '') as any || 'other',
       casNumber: this.extractValue('_mpif_product_cas'),
@@ -233,7 +241,8 @@ export class MPIFParser {
       state: this.extractValue('_mpif_product_state')?.replace(/'/g, '') as any || 'solid',
       color: this.extractValue('_mpif_product_color')?.replace(/'/g, '') || '#000000',
       handlingAtmosphere: this.extractValue('_mpif_product_handling_atmosphere')?.replace(/'/g, '') as any || 'air',
-      handlingNote: this.extractTextBlock('_mpif_product_handling_note')
+      handlingNote: this.extractTextBlock('_mpif_product_handling_note'),
+      cif: cifData
     };
   }
 

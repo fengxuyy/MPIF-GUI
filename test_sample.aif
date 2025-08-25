@@ -1,0 +1,21 @@
+data_sample_adsorption
+
+_sample_id           MOF-5_test
+_material_id         ZIF-8
+_temperature_K       77
+_pressure_units      bar
+_loading_units       mmol/g
+
+loop_
+_adsorp_pressure
+_adsorp_loading
+0.001    0.5
+0.01     2.1
+0.1      5.8
+0.5      12.3
+1.0      18.5
+2.0      22.1
+5.0      25.6
+10.0     26.8
+15.0     27.2
+20.0     27.4

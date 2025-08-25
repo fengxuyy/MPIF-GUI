@@ -37,6 +37,7 @@ export interface ProductInfo {
   color: string;
   handlingAtmosphere: 'air' | 'inert' | 'water-free' | 'oxygen-free' | 'other';
   handlingNote?: string;
+  cif?: string;
 }
 
 export interface SynthesisGeneral {

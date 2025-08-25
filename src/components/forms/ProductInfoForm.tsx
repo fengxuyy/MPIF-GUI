@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductInfo } from '@/types/mpif';
+import { useState } from 'react';
+import { CIFFileUpload } from '../ui/CIFFileUpload';
 
 interface ProductInfoFormProps {
   data?: ProductInfo;
@@ -12,6 +14,9 @@ interface ProductInfoFormProps {
 }
 
 export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFormProps) {
+  const [cifContent, setCifContent] = useState(data?.cif || '');
+  const [cifFileName, setCifFileName] = useState('');
+
   const {
     register,
     handleSubmit,
@@ -35,12 +40,23 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
 
   // Watch for changes to trigger unsaved state
   const watchedFields = watch();
-  if (isDirty) {
+  const hasChanges = isDirty || cifContent !== (data?.cif || '');
+  if (hasChanges) {
     onUnsavedChange();
   }
 
   const onSubmit = (formData: ProductInfo) => {
+    // Include CIF content if provided
+    if (cifContent.trim()) {
+      formData.cif = cifContent;
+    }
     onSave(formData);
+  };
+
+  const handleCifFileLoad = (content: string, filename: string) => {
+    setCifContent(content);
+    setCifFileName(filename);
+    onUnsavedChange();
   };
 
   return (
@@ -226,8 +242,42 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
         </CardContent>
       </Card>
 
+      {/* Crystal Structure Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Crystal Structure</CardTitle>
+          <CardDescription>
+            Upload crystallographic information file (CIF format)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>CIF File Upload</Label>
+            <CIFFileUpload 
+              onFileLoad={handleCifFileLoad}
+              currentFileName={cifFileName}
+            />
+            <p className="text-xs text-muted-foreground">
+              Upload a Crystallographic Information File (.cif) containing the crystal structure
+            </p>
+            {cifContent && (
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <p className="text-xs font-medium mb-1">Structure Preview:</p>
+                <p className="text-xs font-mono text-muted-foreground">
+                  {cifContent.split('\n').slice(0, 5).join('\n')}
+                  {cifContent.split('\n').length > 5 && '\n...'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {cifContent.split('\n').length} lines, {cifContent.length} characters
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={!isDirty}>
+        <Button type="submit" disabled={!hasChanges}>
           Save Product Information
         </Button>
       </div>
