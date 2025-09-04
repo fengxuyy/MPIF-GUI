@@ -1,10 +1,11 @@
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SynthesisDetails, Substrate, Solvent, Vessel, Hardware, ProcedureStep } from '@/types/mpif';
+import { SynthesisDetails } from '@/types/mpif';
 import { Plus, Trash2 } from 'lucide-react';
+import { EditableSelect } from '../ui/EditableSelect';
 
 interface SynthesisDetailsFormProps {
   data?: SynthesisDetails;
@@ -17,7 +18,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
     register,
     handleSubmit,
     control,
-    watch,
     formState: { errors, isDirty },
   } = useForm<SynthesisDetails>({
     defaultValues: data || {
@@ -59,7 +59,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
   });
 
   // Watch for changes to trigger unsaved state
-  const watchedFields = watch();
   if (isDirty) {
     onUnsavedChange();
   }
@@ -114,16 +113,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
 
               <div className="space-y-2">
                 <Label htmlFor={`substrates.${index}.molarityUnit`}>Molarity Unit</Label>
-                <select
-                  {...register(`substrates.${index}.molarityUnit`)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">Select</option>
-                  <option value="μmol">μmol</option>
-                  <option value="mmol">mmol</option>
-                  <option value="mol">mol</option>
-                  <option value="kmol">kmol</option>
-                </select>
+                <Controller
+                  name={`substrates.${index}.molarityUnit`}
+                  control={control}
+                  render={({ field }) => (
+                    <EditableSelect
+                      {...field}
+                      value={field.value || ''}
+                      options={['μmol', 'mmol', 'mol', 'kmol']}
+                    />
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
@@ -145,17 +145,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
 
               <div className="space-y-2">
                 <Label htmlFor={`substrates.${index}.amountUnit`}>Unit *</Label>
-                <select
-                  {...register(`substrates.${index}.amountUnit`, { required: 'Unit is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="mg">mg</option>
-                  <option value="g">g</option>
-                  <option value="kg">kg</option>
-                  <option value="μL">μL</option>
-                  <option value="mL">mL</option>
-                  <option value="L">L</option>
-                </select>
+                <Controller
+                  name={`substrates.${index}.amountUnit`}
+                  control={control}
+                  rules={{ required: 'Unit is required' }}
+                  render={({ field }) => (
+                    <EditableSelect
+                      {...field}
+                      options={['mg', 'g', 'kg', 'μL', 'mL', 'L']}
+                    />
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
@@ -255,16 +255,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
 
               <div className="space-y-2">
                 <Label htmlFor={`solvents.${index}.molarityUnit`}>Molarity Unit</Label>
-                <select
-                  {...register(`solvents.${index}.molarityUnit`)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">Select</option>
-                  <option value="μmol">μmol</option>
-                  <option value="mmol">mmol</option>
-                  <option value="mol">mol</option>
-                  <option value="kmol">kmol</option>
-                </select>
+                <Controller
+                  name={`solvents.${index}.molarityUnit`}
+                  control={control}
+                  render={({ field }) => (
+                    <EditableSelect
+                      {...field}
+                      value={field.value || ''}
+                      options={['μmol', 'mmol', 'mol', 'kmol']}
+                    />
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
@@ -283,17 +284,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
 
               <div className="space-y-2">
                 <Label htmlFor={`solvents.${index}.amountUnit`}>Unit *</Label>
-                <select
-                  {...register(`solvents.${index}.amountUnit`, { required: 'Unit is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="μL">μL</option>
-                  <option value="mL">mL</option>
-                  <option value="L">L</option>
-                  <option value="mg">mg</option>
-                  <option value="g">g</option>
-                  <option value="kg">kg</option>
-                </select>
+                <Controller
+                  name={`solvents.${index}.amountUnit`}
+                  control={control}
+                  rules={{ required: 'Unit is required' }}
+                  render={({ field }) => (
+                    <EditableSelect
+                      {...field}
+                      options={['μL', 'mL', 'L', 'mg', 'g', 'kg']}
+                    />
+                  )}
+                />
               </div>
 
               <div className="space-y-2">
@@ -358,7 +359,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
               type="button"
               size="sm"
               onClick={() => appendVessel({ 
-                id: Date.now().toString(), 
+                id: `V${vesselFields.length + 1}`, 
                 volume: 0, 
                 volumeUnit: 'mL', 
                 material: '', 
@@ -376,87 +377,89 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {vesselFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-8 gap-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor={`vessels.${index}.type`}>Type *</Label>
-                <select
-                  {...register(`vessels.${index}.type`, { required: 'Type is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="Vial">Vial</option>
-                  <option value="Jar">Jar</option>
-                  <option value="Autoclave">Autoclave</option>
-                  <option value="Beaker">Beaker</option>
-                  <option value="Flask">Flask</option>
-                  <option value="Centrifuge-tube">Centrifuge Tube</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor={`vessels.${index}.volume`}>Volume *</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  {...register(`vessels.${index}.volume`, { 
-                    required: 'Volume is required',
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Volume must be positive' }
-                  })}
-                  placeholder="20"
-                />
-              </div>
+            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                <div className="space-y-2">
+                  <Label>ID</Label>
+                  <Input value={`V${index + 1}`} disabled />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`vessels.${index}.volumeUnit`}>Unit *</Label>
-                <select
-                  {...register(`vessels.${index}.volumeUnit`, { required: 'Unit is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="μL">μL</option>
-                  <option value="mL">mL</option>
-                  <option value="L">L</option>
-                </select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`vessels.${index}.type`}>Type *</Label>
+                  <Controller
+                    name={`vessels.${index}.type`}
+                    control={control}
+                    rules={{ required: 'Type is required' }}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        options={['Vial', 'Jar', 'Autoclave', 'Beaker', 'Flask', 'Centrifuge-tube']}
+                      />
+                    )}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`vessels.${index}.volume`}>Volume *</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    {...register(`vessels.${index}.volume`, { 
+                      required: 'Volume is required',
+                      valueAsNumber: true,
+                      min: { value: 0, message: 'Volume must be positive' }
+                    })}
+                    placeholder="20"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`vessels.${index}.material`}>Material *</Label>
-                <Input
-                  {...register(`vessels.${index}.material`, { required: 'Material is required' })}
-                  placeholder="Glass, PTFE, etc."
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`vessels.${index}.volumeUnit`}>Unit *</Label>
+                  <Controller
+                    name={`vessels.${index}.volumeUnit`}
+                    control={control}
+                    rules={{ required: 'Unit is required' }}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        options={['μL', 'mL', 'L']}
+                      />
+                    )}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`vessels.${index}.purpose`}>Purpose *</Label>
-                <select
-                  {...register(`vessels.${index}.purpose`, { required: 'Purpose is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="Storing">Storing</option>
-                  <option value="Reaction">Reaction</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`vessels.${index}.material`}>Material *</Label>
+                  <Input
+                    {...register(`vessels.${index}.material`, { required: 'Material is required' })}
+                    placeholder="Glass, PTFE, etc."
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`vessels.${index}.supplier`}>Supplier</Label>
-                <Input
-                  {...register(`vessels.${index}.supplier`)}
-                  placeholder="Supplier name"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`vessels.${index}.purpose`}>Purpose *</Label>
+                  <Controller
+                    name={`vessels.${index}.purpose`}
+                    control={control}
+                    rules={{ required: 'Purpose is required' }}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        options={['Storing', 'Reaction']}
+                      />
+                    )}
+                  />
+                </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor={`vessels.${index}.note`}>Note</Label>
-                <Input
-                  {...register(`vessels.${index}.note`)}
-                  placeholder="Special notes about the vessel"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`vessels.${index}.supplier`}>Supplier</Label>
+                  <Input
+                    {...register(`vessels.${index}.supplier`)}
+                    placeholder="Supplier name"
+                  />
+                </div>
 
-              <div className="flex items-end">
-                {vesselFields.length > 1 && (
+                <div className="flex items-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -465,7 +468,14 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`vessels.${index}.note`}>Note</Label>
+                <Input
+                  {...register(`vessels.${index}.note`)}
+                  placeholder="Special notes about the vessel"
+                />
               </div>
             </div>
           ))}
@@ -480,7 +490,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
             <Button
               type="button"
               size="sm"
-              onClick={() => appendHardware({ id: Date.now().toString(), purpose: 'Heating/Cooling', generalName: '', productName: '', supplier: '', note: '' })}
+              onClick={() => appendHardware({ id: `H${hardwareFields.length + 1}`, purpose: 'Heating/Cooling', generalName: '', productName: '', supplier: '', note: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Hardware
@@ -492,58 +502,60 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {hardwareFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor={`hardware.${index}.purpose`}>Purpose *</Label>
-                <select
-                  {...register(`hardware.${index}.purpose`, { required: 'Purpose is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="Heating/Cooling">Temperature control</option>
-                  <option value="Atmosphere-control">Atmosphere control</option>
-                  <option value="Stirring/Mixing">Mixing</option>
-                  <option value="Synthesis-devise">Synthesis devise</option>
-                  <option value="Transferring">Transferring</option>
-                  <option value="Separation">Separation</option>
-                  <option value="Drying">Drying</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
+            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div className="space-y-2">
+                  <Label>ID</Label>
+                  <Input value={`H${index + 1}`} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`hardware.${index}.purpose`}>Purpose *</Label>
+                  <Controller
+                    name={`hardware.${index}.purpose`}
+                    control={control}
+                    rules={{ required: 'Purpose is required' }}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        options={[
+                          'Heating/Cooling',
+                          'Atmosphere-control',
+                          'Stirring/Mixing',
+                          'Synthesis-devise',
+                          'Transferring',
+                          'Separation',
+                          'Drying'
+                        ]}
+                      />
+                    )}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`hardware.${index}.generalName`}>General Name *</Label>
-                <Input
-                  {...register(`hardware.${index}.generalName`, { required: 'General name is required' })}
-                  placeholder="Hot plate, oven, etc."
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`hardware.${index}.generalName`}>General Name *</Label>
+                  <Input
+                    {...register(`hardware.${index}.generalName`, { required: 'General name is required' })}
+                    placeholder="Hot plate, oven, etc."
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`hardware.${index}.productName`}>Product Name</Label>
-                <Input
-                  {...register(`hardware.${index}.productName`)}
-                  placeholder="Model/brand"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`hardware.${index}.productName`}>Product Name</Label>
+                  <Input
+                    {...register(`hardware.${index}.productName`)}
+                    placeholder="Model/brand"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`hardware.${index}.supplier`}>Supplier</Label>
-                <Input
-                  {...register(`hardware.${index}.supplier`)}
-                  placeholder="Supplier name"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`hardware.${index}.supplier`}>Supplier</Label>
+                  <Input
+                    {...register(`hardware.${index}.supplier`)}
+                    placeholder="Supplier name"
+                  />
+                </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor={`hardware.${index}.note`}>Note</Label>
-                <Input
-                  {...register(`hardware.${index}.note`)}
-                  placeholder="Special notes about the hardware"
-                />
-              </div>
-
-              <div className="flex items-end">
-                {hardwareFields.length > 1 && (
+                <div className="flex items-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -552,7 +564,15 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`hardware.${index}.note`}>Note</Label>
+                <Input
+                  {...register(`hardware.${index}.note`)}
+                  placeholder="Special notes about the hardware"
+                />
               </div>
             </div>
           ))}
@@ -582,28 +602,32 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
             <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor={`steps.${index}.type`}>Step Type *</Label>
-                <select
-                  {...register(`steps.${index}.type`, { required: 'Type is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="Preparation">Preparation</option>
-                  <option value="Reaction">Reaction</option>
-                  <option value="Work-up">Work-up</option>
-                </select>
+                <Controller
+                  name={`steps.${index}.type`}
+                  control={control}
+                  rules={{ required: 'Type is required' }}
+                  render={({ field }) => (
+                    <EditableSelect
+                      {...field}
+                      options={['Preparation', 'Reaction', 'Work-up']}
+                    />
+                  )}
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor={`steps.${index}.atmosphere`}>Atmosphere *</Label>
-                <select
-                  {...register(`steps.${index}.atmosphere`, { required: 'Atmosphere is required' })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="Air">Air</option>
-                  <option value="Dry">Dry</option>
-                  <option value="Inert">Inert</option>
-                  <option value="Vacuum">Vacuum</option>
-                  <option value="Other">Other</option>
-                </select>
+                <Controller
+                  name={`steps.${index}.atmosphere`}
+                  control={control}
+                  rules={{ required: 'Atmosphere is required' }}
+                  render={({ field }) => (
+                    <EditableSelect
+                      {...field}
+                      options={['Air', 'Dry', 'Inert', 'Vacuum']}
+                    />
+                  )}
+                />
               </div>
 
               <div className="flex items-end">

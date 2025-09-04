@@ -7,6 +7,8 @@ import { Characterization, PXRDData, TGAData } from '@/types/mpif';
 import { useState } from 'react';
 import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
+import { EditableSelect } from '../ui/EditableSelect';
+import { Controller } from 'react-hook-form';
 
 interface CharacterizationFormProps {
   data?: Characterization;
@@ -25,6 +27,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors, isDirty },
   } = useForm<Characterization>({
     defaultValues: data || {
@@ -125,21 +128,16 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pxrd.source">X-ray Source</Label>
-              <select
-                id="pxrd.source"
-                {...register('pxrd.source')}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Select source...</option>
-                <option value="Cu">Cu Kα</option>
-                <option value="Cr">Cr Kα</option>
-                <option value="Fe">Fe Kα</option>
-                <option value="Co">Co Kα</option>
-                <option value="Mo">Mo Kα</option>
-                <option value="Ag">Ag Kα</option>
-                <option value="synchrotron">Synchrotron</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="pxrd.source"
+                control={control}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['Cu', 'Cr', 'Fe', 'Co', 'Mo', 'Ag', 'synchrotron']}
+                  />
+                )}
+              />
             </div>
 
             <div className="space-y-2">

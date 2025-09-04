@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SynthesisGeneral } from '@/types/mpif';
+import { EditableSelect } from '../ui/EditableSelect';
+import { Controller } from 'react-hook-form';
 
 interface SynthesisGeneralFormProps {
   data?: SynthesisGeneral;
@@ -16,6 +18,7 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors, isDirty },
   } = useForm<SynthesisGeneral>({
     defaultValues: data || {
@@ -36,7 +39,6 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
   });
 
   // Watch for changes to trigger unsaved state
-  const watchedFields = watch();
   if (isDirty) {
     onUnsavedChange();
   }
@@ -120,22 +122,27 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="reactionType">Reaction Type *</Label>
-              <select
-                id="reactionType"
-                {...register('reactionType', { required: 'Reaction type is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="mix">Mix</option>
-                <option value="diffusion">Diffusion</option>
-                <option value="evaporation">Evaporation</option>
-                <option value="microwave">Microwave</option>
-                <option value="mechanochemical">Mechanochemical</option>
-                <option value="electrochemical">Electrochemical</option>
-                <option value="sonochemical">Sonochemical</option>
-                <option value="photochemical">Photochemical</option>
-                <option value="flow">Flow</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="reactionType"
+                control={control}
+                rules={{ required: 'Reaction type is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={[
+                      'mix',
+                      'diffusion',
+                      'evaporation',
+                      'microwave',
+                      'mechanochemical',
+                      'electrochemical',
+                      'sonochemical',
+                      'photochemical',
+                      'flow',
+                    ]}
+                  />
+                )}
+              />
               {errors.reactionType && (
                 <p className="text-sm text-red-600">{errors.reactionType.message}</p>
               )}
@@ -143,17 +150,17 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
 
             <div className="space-y-2">
               <Label htmlFor="reactionAtmosphere">Reaction Atmosphere *</Label>
-              <select
-                id="reactionAtmosphere"
-                {...register('reactionAtmosphere', { required: 'Atmosphere is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="air">Air</option>
-                <option value="dry">Dry</option>
-                <option value="inert">Inert</option>
-                <option value="vacuum">Vacuum</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="reactionAtmosphere"
+                control={control}
+                rules={{ required: 'Atmosphere is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['air', 'dry', 'inert', 'vacuum']}
+                  />
+                )}
+              />
               {errors.reactionAtmosphere && (
                 <p className="text-sm text-red-600">{errors.reactionAtmosphere.message}</p>
               )}
@@ -178,21 +185,26 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
 
             <div className="space-y-2">
               <Label htmlFor="temperatureController">Temperature Controller *</Label>
-              <select
-                id="temperatureController"
-                {...register('temperatureController', { required: 'Temperature controller is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="ambient">Ambient</option>
-                <option value="oven">Oven</option>
-                <option value="water_bath">Water Bath</option>
-                <option value="oil_bath">Oil Bath</option>
-                <option value="dry_bath">Dry Bath</option>
-                <option value="hot_plate">Hot Plate</option>
-                <option value="microwave">Microwave</option>
-                <option value="furnace">Furnace</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="temperatureController"
+                control={control}
+                rules={{ required: 'Temperature controller is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={[
+                      'ambient',
+                      'oven',
+                      'water_bath',
+                      'oil_bath',
+                      'dry_bath',
+                      'hot_plate',
+                      'microwave',
+                      'furnace',
+                    ]}
+                  />
+                )}
+              />
               {errors.temperatureController && (
                 <p className="text-sm text-red-600">{errors.temperatureController.message}</p>
               )}
@@ -218,16 +230,17 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
 
             <div className="space-y-2">
               <Label htmlFor="reactionTimeUnit">Time Unit *</Label>
-              <select
-                id="reactionTimeUnit"
-                {...register('reactionTimeUnit', { required: 'Time unit is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="s">Seconds</option>
-                <option value="min">Minutes</option>
-                <option value="h">Hours</option>
-                <option value="days">Days</option>
-              </select>
+              <Controller
+                name="reactionTimeUnit"
+                control={control}
+                rules={{ required: 'Time unit is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['s', 'min', 'h', 'days']}
+                  />
+                )}
+              />
               {errors.reactionTimeUnit && (
                 <p className="text-sm text-red-600">{errors.reactionTimeUnit.message}</p>
               )}
@@ -392,18 +405,17 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
 
             <div className="space-y-2">
               <Label htmlFor="productAmountUnit">Amount Unit *</Label>
-              <select
-                id="productAmountUnit"
-                {...register('productAmountUnit', { required: 'Unit is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="mg">mg</option>
-                <option value="g">g</option>
-                <option value="kg">kg</option>
-                <option value="μL">μL</option>
-                <option value="mL">mL</option>
-                <option value="L">L</option>
-              </select>
+              <Controller
+                name="productAmountUnit"
+                control={control}
+                rules={{ required: 'Unit is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['mg', 'g', 'kg', 'μL', 'mL', 'L']}
+                  />
+                )}
+              />
               {errors.productAmountUnit && (
                 <p className="text-sm text-red-600">{errors.productAmountUnit.message}</p>
               )}
@@ -411,16 +423,17 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
 
             <div className="space-y-2">
               <Label htmlFor="scale">Synthesis Scale *</Label>
-              <select
-                id="scale"
-                {...register('scale', { required: 'Scale is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="milligram">Milligram</option>
-                <option value="gram">Gram</option>
-                <option value="multigram">Multigram</option>
-                <option value="kilogram">Kilogram</option>
-              </select>
+              <Controller
+                name="scale"
+                control={control}
+                rules={{ required: 'Scale is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['milligram', 'gram', 'multigram', 'kilogram']}
+                  />
+                )}
+              />
               {errors.scale && (
                 <p className="text-sm text-red-600">{errors.scale.message}</p>
               )}

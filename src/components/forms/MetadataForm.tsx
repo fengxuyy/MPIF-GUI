@@ -1,9 +1,10 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MPIFMetadata } from '@/types/mpif';
+import { EditableSelect } from '../ui/EditableSelect';
 
 interface MetadataFormProps {
   data?: MPIFMetadata;
@@ -15,7 +16,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isDirty },
   } = useForm<MPIFMetadata>({
     defaultValues: data || {
@@ -28,7 +29,6 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
   });
 
   // Watch for changes to trigger unsaved state
-  const watchedFields = watch();
   if (isDirty) {
     onUnsavedChange();
   }
@@ -68,15 +68,17 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
 
             <div className="space-y-2">
               <Label htmlFor="procedureStatus">Procedure Status *</Label>
-              <select
-                id="procedureStatus"
-                {...register('procedureStatus', { required: 'Status is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="test">Test</option>
-                <option value="success">Success</option>
-                <option value="failure">Failure</option>
-              </select>
+              <Controller
+                name="procedureStatus"
+                control={control}
+                rules={{ required: 'Status is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['test', 'success', 'failure']}
+                  />
+                )}
+              />
               {errors.procedureStatus && (
                 <p className="text-sm text-red-600">{errors.procedureStatus.message}</p>
               )}

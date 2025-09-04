@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ProductInfo } from '@/types/mpif';
 import { useState } from 'react';
 import { CIFFileUpload } from '../ui/CIFFileUpload';
+import { EditableSelect } from '../ui/EditableSelect';
 
 interface ProductInfoFormProps {
   data?: ProductInfo;
@@ -20,7 +21,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isDirty },
   } = useForm<ProductInfo>({
     defaultValues: data || {
@@ -39,7 +40,6 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
   });
 
   // Watch for changes to trigger unsaved state
-  const watchedFields = watch();
   const hasChanges = isDirty || cifContent !== (data?.cif || '');
   if (hasChanges) {
     onUnsavedChange();
@@ -72,17 +72,17 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Material Type *</Label>
-              <select
-                id="type"
-                {...register('type', { required: 'Material type is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="porous framework material">Porous Framework Material</option>
-                <option value="inorganic">Inorganic</option>
-                <option value="organic">Organic</option>
-                <option value="composite">Composite</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="type"
+                control={control}
+                rules={{ required: 'Material type is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['porous framework material', 'inorganic', 'organic', 'composite']}
+                  />
+                )}
+              />
               {errors.type && (
                 <p className="text-sm text-red-600">{errors.type.message}</p>
               )}
@@ -108,17 +108,17 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
 
             <div className="space-y-2">
               <Label htmlFor="state">Physical State *</Label>
-              <select
-                id="state"
-                {...register('state', { required: 'Physical state is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="solid">Solid</option>
-                <option value="liquid">Liquid</option>
-                <option value="gas">Gas</option>
-                <option value="suspension">Suspension</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="state"
+                control={control}
+                rules={{ required: 'Physical state is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['solid', 'liquid', 'gas', 'suspension']}
+                  />
+                )}
+              />
               {errors.state && (
                 <p className="text-sm text-red-600">{errors.state.message}</p>
               )}
@@ -140,17 +140,17 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
 
             <div className="space-y-2">
               <Label htmlFor="handlingAtmosphere">Handling Atmosphere *</Label>
-              <select
-                id="handlingAtmosphere"
-                {...register('handlingAtmosphere', { required: 'Handling atmosphere is required' })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="air">Air</option>
-                <option value="inert">Inert</option>
-                <option value="water-free">Water-free</option>
-                <option value="oxygen-free">Oxygen-free</option>
-                <option value="other">Other</option>
-              </select>
+              <Controller
+                name="handlingAtmosphere"
+                control={control}
+                rules={{ required: 'Handling atmosphere is required' }}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['air', 'inert', 'water-free', 'oxygen-free']}
+                  />
+                )}
+              />
               {errors.handlingAtmosphere && (
                 <p className="text-sm text-red-600">{errors.handlingAtmosphere.message}</p>
               )}
