@@ -46,10 +46,10 @@ export interface SynthesisGeneral {
   labHumidity: number;
   reactionType: 'mix' | 'diffusion' | 'evaporation' | 'microwave' | 'mechanochemical' | 'electrochemical' | 'sonochemical' | 'photochemical' | 'flow' | 'other';
   reactionTemperature: number;
-  temperatureController: 'ambient' | 'oven' | 'liquid_bath' | 'dry_bath' | 'hot_plate' | 'microwave' | 'furnace' | 'other';
+  temperatureController: 'ambient' | 'oven' | 'oil_bath' | 'water_bath' | 'dry_bath' | 'hot_plate' | 'microwave' | 'furnace' | 'other' | 'liquid_bath';
   reactionTime: number;
   reactionTimeUnit: 's' | 'min' | 'h' | 'days';
-  reactionAtmosphere: 'air' | 'inert' | 'vacuum' | 'other';
+  reactionAtmosphere: 'air' | 'dry' | 'inert' | 'vacuum' | 'other';
   reactionContainer: string;
   reactionNote?: string;
   productAmount: number;

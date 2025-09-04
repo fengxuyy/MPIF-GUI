@@ -46,6 +46,12 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
   });
 
 
+  const { fields: hardwareFields, append: appendHardware, remove: removeHardware } = useFieldArray({
+    control,
+    name: 'hardware'
+  });
+
+
 
   const { fields: stepFields, append: appendStep, remove: removeStep } = useFieldArray({
     control,
@@ -84,7 +90,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {substrateFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor={`substrates.${index}.name`}>Name *</Label>
                 <Input
@@ -96,6 +102,30 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 )}
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor={`substrates.${index}.molarity`}>Molarity</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  {...register(`substrates.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
+                  placeholder="0.5"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`substrates.${index}.molarityUnit`}>Molarity Unit</Label>
+                <select
+                  {...register(`substrates.${index}.molarityUnit`)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select</option>
+                  <option value="μmol">μmol</option>
+                  <option value="mmol">mmol</option>
+                  <option value="mol">mol</option>
+                  <option value="kmol">kmol</option>
+                </select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor={`substrates.${index}.amount`}>Amount *</Label>
                 <Input
@@ -121,12 +151,47 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 >
                   <option value="mg">mg</option>
                   <option value="g">g</option>
-                  <option value="mmol">mmol</option>
-                  <option value="mol">mol</option>
+                  <option value="kg">kg</option>
                   <option value="μL">μL</option>
                   <option value="mL">mL</option>
                   <option value="L">L</option>
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`substrates.${index}.supplier`}>Supplier</Label>
+                <Input
+                  {...register(`substrates.${index}.supplier`)}
+                  placeholder="Supplier name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`substrates.${index}.purity`}>Purity (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  {...register(`substrates.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
+                  placeholder="99.9"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`substrates.${index}.casNumber`}>CAS</Label>
+                <Input
+                  {...register(`substrates.${index}.casNumber`)}
+                  placeholder="12345-67-8"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor={`substrates.${index}.smiles`}>SMILES</Label>
+                <Input
+                  {...register(`substrates.${index}.smiles`)}
+                  placeholder="SMILES string"
+                />
               </div>
 
               <div className="flex items-end">
@@ -166,7 +231,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {solventFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor={`solvents.${index}.name`}>Name *</Label>
                 <Input
@@ -178,6 +243,30 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 )}
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor={`solvents.${index}.molarity`}>Molarity</Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  {...register(`solvents.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
+                  placeholder="0.5"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`solvents.${index}.molarityUnit`}>Molarity Unit</Label>
+                <select
+                  {...register(`solvents.${index}.molarityUnit`)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select</option>
+                  <option value="μmol">μmol</option>
+                  <option value="mmol">mmol</option>
+                  <option value="mol">mol</option>
+                  <option value="kmol">kmol</option>
+                </select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor={`solvents.${index}.amount`}>Amount *</Label>
                 <Input
@@ -203,7 +292,44 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   <option value="L">L</option>
                   <option value="mg">mg</option>
                   <option value="g">g</option>
+                  <option value="kg">kg</option>
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`solvents.${index}.supplier`}>Supplier</Label>
+                <Input
+                  {...register(`solvents.${index}.supplier`)}
+                  placeholder="Supplier name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`solvents.${index}.purity`}>Purity (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  {...register(`solvents.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
+                  placeholder="99.9"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`solvents.${index}.casNumber`}>CAS</Label>
+                <Input
+                  {...register(`solvents.${index}.casNumber`)}
+                  placeholder="12345-67-8"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor={`solvents.${index}.smiles`}>SMILES</Label>
+                <Input
+                  {...register(`solvents.${index}.smiles`)}
+                  placeholder="SMILES string"
+                />
               </div>
 
               <div className="flex items-end">
@@ -250,7 +376,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {vesselFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
+            <div key={field.id} className="grid grid-cols-1 md:grid-cols-8 gap-4 p-4 border rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor={`vessels.${index}.type`}>Type *</Label>
                 <select
@@ -313,6 +439,22 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 </select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor={`vessels.${index}.supplier`}>Supplier</Label>
+                <Input
+                  {...register(`vessels.${index}.supplier`)}
+                  placeholder="Supplier name"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor={`vessels.${index}.note`}>Note</Label>
+                <Input
+                  {...register(`vessels.${index}.note`)}
+                  placeholder="Special notes about the vessel"
+                />
+              </div>
+
               <div className="flex items-end">
                 {vesselFields.length > 1 && (
                   <Button
@@ -320,6 +462,93 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                     variant="outline"
                     size="sm"
                     onClick={() => removeVessel(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Hardware */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            Hardware
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => appendHardware({ id: Date.now().toString(), purpose: 'Heating/Cooling', generalName: '', productName: '', supplier: '', note: '' })}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Hardware
+            </Button>
+          </CardTitle>
+          <CardDescription>
+            Equipment and devices used during synthesis
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {hardwareFields.map((field, index) => (
+            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
+              <div className="space-y-2">
+                <Label htmlFor={`hardware.${index}.purpose`}>Purpose *</Label>
+                <select
+                  {...register(`hardware.${index}.purpose`, { required: 'Purpose is required' })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="Heating/Cooling">Temperature control</option>
+                  <option value="Atmosphere-control">Atmosphere control</option>
+                  <option value="Stirring/Mixing">Mixing</option>
+                  <option value="Synthesis-devise">Synthesis devise</option>
+                  <option value="Transferring">Transferring</option>
+                  <option value="Separation">Separation</option>
+                  <option value="Drying">Drying</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`hardware.${index}.generalName`}>General Name *</Label>
+                <Input
+                  {...register(`hardware.${index}.generalName`, { required: 'General name is required' })}
+                  placeholder="Hot plate, oven, etc."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`hardware.${index}.productName`}>Product Name</Label>
+                <Input
+                  {...register(`hardware.${index}.productName`)}
+                  placeholder="Model/brand"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`hardware.${index}.supplier`}>Supplier</Label>
+                <Input
+                  {...register(`hardware.${index}.supplier`)}
+                  placeholder="Supplier name"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor={`hardware.${index}.note`}>Note</Label>
+                <Input
+                  {...register(`hardware.${index}.note`)}
+                  placeholder="Special notes about the hardware"
+                />
+              </div>
+
+              <div className="flex items-end">
+                {hardwareFields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeHardware(index)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

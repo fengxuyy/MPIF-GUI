@@ -87,6 +87,33 @@ export class MPIFParser {
     result += `_mpif_synthesis_lab_temperature_C\t${data.synthesisGeneral.labTemperature}\n`;
     result += `_mpif_synthesis_lab_humidity_percent\t${data.synthesisGeneral.labHumidity}\n`;
     result += `_mpif_synthesis_type\t'${data.synthesisGeneral.reactionType}'\n`;
+    // Conditional parameters based on type
+    if (data.synthesisGeneral.reactionType === 'evaporation' && data.synthesisGeneral.evaporationMethod) {
+      result += `_mpif_synthesis_evap_method\t'${data.synthesisGeneral.evaporationMethod}'\n`;
+    }
+    if (data.synthesisGeneral.reactionType === 'microwave' && data.synthesisGeneral.microwavePower !== undefined) {
+      result += `_mpif_synthesis_react_microwave_power_W\t${data.synthesisGeneral.microwavePower}\n`;
+    }
+    if (data.synthesisGeneral.reactionType === 'mechanochemical' && data.synthesisGeneral.mechanochemicalMethod) {
+      result += `_mpif_synthesis_react_mechanochem_method\t'${data.synthesisGeneral.mechanochemicalMethod}'\n`;
+    }
+    if (data.synthesisGeneral.reactionType === 'electrochemical') {
+      if (data.synthesisGeneral.electrochemicalCathode) result += `_mpif_synthesis_react_electrochem_cathode\t${data.synthesisGeneral.electrochemicalCathode}\n`;
+      if (data.synthesisGeneral.electrochemicalAnode) result += `_mpif_synthesis_react_electrochem_anode\t${data.synthesisGeneral.electrochemicalAnode}\n`;
+      if (data.synthesisGeneral.electrochemicalReference) result += `_mpif_synthesis_react_electrochem_reference\t${data.synthesisGeneral.electrochemicalReference}\n`;
+      if (data.synthesisGeneral.electrochemicalVoltage !== undefined) result += `_mpif_synthesis_react_electrochem_voltage_V\t${data.synthesisGeneral.electrochemicalVoltage}\n`;
+      if (data.synthesisGeneral.electrochemicalCurrent !== undefined) result += `_mpif_synthesis_react_electrochem_current_A\t${data.synthesisGeneral.electrochemicalCurrent}\n`;
+    }
+    if (data.synthesisGeneral.reactionType === 'sonochemical') {
+      if (data.synthesisGeneral.sonicationMethod) result += `_mpif_synthesis_react_sonication_method\t'${data.synthesisGeneral.sonicationMethod}'\n`;
+      if (data.synthesisGeneral.sonicationPower !== undefined) result += `_mpif_synthesis_react_sonication_power\t${data.synthesisGeneral.sonicationPower}\n`;
+      if (data.synthesisGeneral.sonicationPowerUnit) result += `_mpif_synthesis_react_sonication_power_unit\t'${data.synthesisGeneral.sonicationPowerUnit}'\n`;
+    }
+    if (data.synthesisGeneral.reactionType === 'photochemical') {
+      if (data.synthesisGeneral.photochemicalWavelength !== undefined) result += `_mpif_synthesis_react_photochemical_wavelength_nm\t${data.synthesisGeneral.photochemicalWavelength}\n`;
+      if (data.synthesisGeneral.photochemicalPower !== undefined) result += `_mpif_synthesis_react_photochemical_power_W\t${data.synthesisGeneral.photochemicalPower}\n`;
+      if (data.synthesisGeneral.photochemicalSource) result += `_mpif_synthesis_react_photochemical_source\t${data.synthesisGeneral.photochemicalSource}\n`;
+    }
     result += `_mpif_synthesis_react_temperature_C\t${data.synthesisGeneral.reactionTemperature}\n`;
     result += `_mpif_synthesis_react_temperature_controller\t'${data.synthesisGeneral.temperatureController}'\n`;
     result += `_mpif_synthesis_react_time\t${data.synthesisGeneral.reactionTime}\n`;
@@ -265,6 +292,41 @@ export class MPIFParser {
       scale: this.extractValue('_mpif_synthesis_scale')?.replace(/'/g, '') || 'milligram',
       safetyNote: this.extractTextBlock('_mpif_synthesis_safety_note')
     };
+
+    // Optional fields depending on type
+    const type = synthesis.reactionType as string;
+    if (type === 'evaporation') {
+      synthesis.evaporationMethod = this.extractValue('_mpif_synthesis_evap_method')?.replace(/'/g, '');
+    }
+    if (type === 'microwave') {
+      const power = this.extractValue('_mpif_synthesis_react_microwave_power_W');
+      synthesis.microwavePower = power ? parseFloat(power) : undefined;
+    }
+    if (type === 'mechanochemical') {
+      synthesis.mechanochemicalMethod = this.extractValue('_mpif_synthesis_react_mechanochem_method')?.replace(/'/g, '');
+    }
+    if (type === 'electrochemical') {
+      synthesis.electrochemicalCathode = this.extractValue('_mpif_synthesis_react_electrochem_cathode')?.replace(/'/g, '');
+      synthesis.electrochemicalAnode = this.extractValue('_mpif_synthesis_react_electrochem_anode')?.replace(/'/g, '');
+      synthesis.electrochemicalReference = this.extractValue('_mpif_synthesis_react_electrochem_reference')?.replace(/'/g, '');
+      const v = this.extractValue('_mpif_synthesis_react_electrochem_voltage_V');
+      synthesis.electrochemicalVoltage = v ? parseFloat(v) : undefined;
+      const a = this.extractValue('_mpif_synthesis_react_electrochem_current_A');
+      synthesis.electrochemicalCurrent = a ? parseFloat(a) : undefined;
+    }
+    if (type === 'sonochemical') {
+      synthesis.sonicationMethod = this.extractValue('_mpif_synthesis_react_sonication_method')?.replace(/'/g, '') as any;
+      const p = this.extractValue('_mpif_synthesis_react_sonication_power');
+      synthesis.sonicationPower = p ? parseFloat(p) : undefined;
+      synthesis.sonicationPowerUnit = this.extractValue('_mpif_synthesis_react_sonication_power_unit')?.replace(/'/g, '') as any;
+    }
+    if (type === 'photochemical') {
+      const wl = this.extractValue('_mpif_synthesis_react_photochemical_wavelength_nm');
+      synthesis.photochemicalWavelength = wl ? parseFloat(wl) : undefined;
+      const pw = this.extractValue('_mpif_synthesis_react_photochemical_power_W');
+      synthesis.photochemicalPower = pw ? parseFloat(pw) : undefined;
+      synthesis.photochemicalSource = this.extractValue('_mpif_synthesis_react_photochemical_source')?.replace(/'/g, '');
+    }
 
     return synthesis;
   }
