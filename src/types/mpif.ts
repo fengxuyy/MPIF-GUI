@@ -2,7 +2,6 @@
 
 export interface MPIFData {
   metadata: MPIFMetadata;
-  authorDetails: AuthorDetails;
   productInfo: ProductInfo;
   synthesisGeneral: SynthesisGeneral;
   synthesisDetails: SynthesisDetails;
@@ -15,9 +14,6 @@ export interface MPIFMetadata {
   generatorVersion: string;
   publicationDOI?: string;
   procedureStatus: 'test' | 'success' | 'failure';
-}
-
-export interface AuthorDetails {
   name: string;
   email: string;
   orcid: string;

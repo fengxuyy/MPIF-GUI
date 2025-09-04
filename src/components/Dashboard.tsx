@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { 
   FileText, 
   User, 
@@ -19,13 +19,13 @@ import { cn } from '@/lib/utils';
 import { downloadFile } from '@/lib/utils';
 import FileUpload from './FileUpload';
 import { MetadataForm } from './forms/MetadataForm';
-import { AuthorDetailsForm } from './forms/AuthorDetailsForm';
 import { ProductInfoForm } from './forms/ProductInfoForm';
 import { SynthesisGeneralForm } from './forms/SynthesisGeneralForm';
 import { SynthesisDetailsForm } from './forms/SynthesisDetailsForm';
 import { CharacterizationForm } from './forms/CharacterizationForm';
 import { MPIFData } from '@/types/mpif';
 import { parseMPIF, stringifyMPIF } from '@/utils/mpifParser';
+import { useMPIFStore } from '@/store/mpifStore';
 
 interface DashboardProps {
   className?: string;
@@ -37,12 +37,6 @@ const sidebarSections = [
     label: 'Metadata',
     icon: FileText,
     description: 'File information and audit details'
-  },
-  {
-    id: 'authorDetails',
-    label: 'Author Details',
-    icon: User,
-    description: 'Contact author information'
   },
   {
     id: 'productInfo',
@@ -77,225 +71,70 @@ interface ValidationError {
 }
 
 export function Dashboard({ className }: DashboardProps) {
-  // Real state management instead of mocks
-  const [currentSection, setCurrentSection] = useState('metadata');
-  const [isEditing, setIsEditing] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [fileName, setFileName] = useState<string | undefined>(undefined);
-  const [lastSaved, setLastSaved] = useState<Date | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [mpifData, setMpifData] = useState<MPIFData | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const {
+    mpifData,
+    dashboard,
+    fileState,
+    validation,
+    setCurrentSection,
+    toggleDarkMode,
+    exportMPIF,
+    resetData,
+    updateMPIFData,
+    loadMPIFFile,
+    updateSection
+  } = useMPIFStore();
 
-  // Initialize dark mode from localStorage
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('mpif-dark-mode');
-    if (savedDarkMode === 'true') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (dashboard.hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = ''; // For Chrome
+      }
+    };
 
-  // Computed values
-  const dashboard = {
-    currentSection,
-    isEditing,
-    hasUnsavedChanges,
-    darkMode
-  };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
-  const fileState = {
-    fileName,
-    lastSaved,
-    isLoading,
-    error
-  };
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [dashboard.hasUnsavedChanges]);
 
-  const validation = {
-    isValid: validationErrors.length === 0,
-    errors: validationErrors
-  };
-
-  // Actions
-  const handleSetCurrentSection = (section: string) => {
-    console.log('Switching to section:', section);
-    setCurrentSection(section);
-  };
-
-  const handleToggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    
-    // Apply to document
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('mpif-dark-mode', newDarkMode.toString());
-    console.log('Dark mode toggled:', newDarkMode);
+  const handleCreateNewMPIF = () => {
+    updateMPIFData({});
   };
 
   const handleExport = () => {
-    try {
-      if (!mpifData) {
-        console.log('No data to export');
-        return;
+    (document.activeElement as HTMLElement)?.blur();
+    
+    setTimeout(() => {
+      try {
+        const content = exportMPIF();
+        const exportFileName = fileState.fileName || 'untitled.mpif';
+        downloadFile(content, exportFileName, 'text/plain');
+      } catch (error) {
+        console.error('Export failed:', error);
+        // Optionally, update the store with an error message
       }
-      
-      const content = stringifyMPIF(mpifData);
-      const exportFileName = fileName || 'untitled.mpif';
-      
-      downloadFile(content, exportFileName, 'text/plain');
-      console.log('File exported:', exportFileName);
-    } catch (error) {
-      console.error('Export failed:', error);
-      setError('Export failed');
-    }
+    }, 100); // Give a moment for the blur to trigger the save
   };
 
   const handleResetData = () => {
     console.log('Resetting all data...');
-    setMpifData(null);
-    setFileName(undefined);
-    setLastSaved(undefined);
-    setError(undefined);
-    setValidationErrors([]);
-    setHasUnsavedChanges(false);
-    setIsEditing(false);
-    setCurrentSection('metadata');
-  };
-
-  const handleCreateNewMPIF = () => {
-    console.log('Creating new MPIF...');
-    // This would create a default MPIF structure
-    const newMPIF: MPIFData = {
-      metadata: {
-        dataName: 'New_MPIF',
-        creationDate: new Date().toISOString().split('T')[0],
-        generatorVersion: '1.0.0',
-        procedureStatus: 'test'
-      },
-      authorDetails: {
-        name: '',
-        email: '',
-        orcid: ''
-      },
-      productInfo: {
-        type: 'porous framework material',
-        commonName: '',
-        state: 'solid',
-        color: '',
-        handlingAtmosphere: 'air'
-      },
-      synthesisGeneral: {
-        performedDate: new Date().toISOString().split('T')[0],
-        labTemperature: 25,
-        labHumidity: 50,
-        reactionType: 'mix',
-        reactionTemperature: 25,
-        temperatureController: 'ambient',
-        reactionTime: 24,
-        reactionTimeUnit: 'h',
-        reactionAtmosphere: 'air',
-        reactionContainer: '',
-        productAmount: 0,
-        productAmountUnit: 'mg',
-        scale: 'milligram'
-      },
-      synthesisDetails: {
-        substrates: [],
-        solvents: [],
-        vessels: [],
-        hardware: [],
-        steps: []
-      },
-      characterization: {}
-    };
-    setMpifData(newMPIF);
-    setFileName('New_MPIF.mpif');
-    setIsEditing(true);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleFileLoad = (content: string, filename: string) => {
-    console.log('Loading file:', filename);
-    setIsLoading(true);
-    setError(undefined);
-    
-    try {
-      // Parse the actual MPIF content
-      const parsedData = parseMPIF(content);
-      console.log('Parsed MPIF data:', parsedData);
-      
-      setMpifData(parsedData);
-      setFileName(filename);
-      setLastSaved(new Date());
-      setIsEditing(true);
-      setHasUnsavedChanges(false);
-      setCurrentSection('metadata');
-      
-      // Clear validation errors since we have real data
-      setValidationErrors([]);
-      
-    } catch (err) {
-      console.error('Failed to parse MPIF file:', err);
-      setError(err instanceof Error ? err.message : 'Failed to parse MPIF file');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveSection = (sectionData: any) => {
-    if (!mpifData) return;
-    
-    const updatedData = { ...mpifData };
-    
-    // Update the specific section
-    switch (currentSection) {
-      case 'metadata':
-        updatedData.metadata = sectionData;
-        break;
-      case 'authorDetails':
-        updatedData.authorDetails = sectionData;
-        break;
-      case 'productInfo':
-        updatedData.productInfo = sectionData;
-        break;
-      case 'synthesisGeneral':
-        updatedData.synthesisGeneral = sectionData;
-        break;
-      case 'synthesisDetails':
-        updatedData.synthesisDetails = sectionData;
-        break;
-      case 'characterization':
-        updatedData.characterization = sectionData;
-        break;
-    }
-    
-    setMpifData(updatedData);
-    setHasUnsavedChanges(false);
-    setLastSaved(new Date());
-    console.log(`${currentSection} data saved:`, sectionData);
+    resetData();
   };
 
   const renderSectionForm = () => {
     if (!mpifData) return null;
 
     const commonProps = {
-      onSave: handleSaveSection,
-      onUnsavedChange: () => setHasUnsavedChanges(true)
+      onSave: (data: any) => updateSection(dashboard.currentSection as keyof MPIFData, data),
+      onUnsavedChange: () => {} // This is handled by the store now
     };
 
-    switch (currentSection) {
+    switch (dashboard.currentSection) {
       case 'metadata':
         return <MetadataForm data={mpifData.metadata} {...commonProps} />;
-      case 'authorDetails':
-        return <AuthorDetailsForm data={mpifData.authorDetails} {...commonProps} />;
       case 'productInfo':
         return <ProductInfoForm data={mpifData.productInfo} {...commonProps} />;
       case 'synthesisGeneral':
@@ -308,14 +147,14 @@ export function Dashboard({ className }: DashboardProps) {
         return (
           <div className="p-4 bg-muted/50 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              Form for {currentSection} section will be implemented here.
+              Form for {dashboard.currentSection} section will be implemented here.
             </p>
           </div>
         );
     }
   };
 
-  const currentSectionData = sidebarSections.find(s => s.id === currentSection);
+  const currentSectionData = sidebarSections.find(s => s.id === dashboard.currentSection);
 
   return (
     <div className={cn('flex h-screen bg-background', className)}>
@@ -327,9 +166,9 @@ export function Dashboard({ className }: DashboardProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleToggleDarkMode}
+              onClick={toggleDarkMode}
             >
-              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {dashboard.darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -340,16 +179,16 @@ export function Dashboard({ className }: DashboardProps) {
         {/* File Status */}
         <div className="p-4 border-b">
           <div className="space-y-2">
-            {fileName ? (
+            {fileState.fileName ? (
               <div className="flex items-center space-x-2">
                 <FileText className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium truncate">{fileName}</span>
+                <span className="text-sm font-medium truncate">{fileState.fileName}</span>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No file loaded</p>
             )}
             
-            {hasUnsavedChanges && (
+            {dashboard.hasUnsavedChanges && (
               <div className="flex items-center space-x-1 text-amber-600">
                 <AlertTriangle className="h-3 w-3" />
                 <span className="text-xs">Unsaved changes</span>
@@ -363,29 +202,15 @@ export function Dashboard({ className }: DashboardProps) {
               </div>
             )}
             
-            {lastSaved && (
+            {fileState.lastSaved && (
               <p className="text-xs text-muted-foreground">
-                Last saved: {lastSaved.toLocaleTimeString()}
+                Last saved: {fileState.lastSaved.toLocaleTimeString()}
               </p>
             )}
           </div>
 
           {/* Action Buttons */}
           <div className="flex space-x-2 mt-3">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex-1"
-              disabled={!hasUnsavedChanges}
-              onClick={() => {
-                setHasUnsavedChanges(false);
-                setLastSaved(new Date());
-                console.log('Data saved');
-              }}
-            >
-              <Save className="h-3 w-3 mr-1" />
-              Save
-            </Button>
             <Button 
               size="sm" 
               variant="outline" 
@@ -403,13 +228,13 @@ export function Dashboard({ className }: DashboardProps) {
           <nav className="space-y-1">
             {sidebarSections.map((section) => {
               const Icon = section.icon;
-              const isActive = currentSection === section.id;
+              const isActive = dashboard.currentSection === section.id;
               const hasErrors = validation.errors.some((error: ValidationError) => error.section === section.id);
               
               return (
                 <button
                   key={section.id}
-                  onClick={() => handleSetCurrentSection(section.id)}
+                  onClick={() => setCurrentSection(section.id)}
                   className={cn(
                     'w-full flex items-start space-x-3 px-3 py-2 rounded-lg text-left transition-colors',
                     'hover:bg-accent hover:text-accent-foreground',
@@ -458,7 +283,7 @@ export function Dashboard({ className }: DashboardProps) {
             </div>
             
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleResetData}>
+              <Button variant="outline" size="sm" onClick={resetData}>
                 Upload File
               </Button>
               <Button size="sm" onClick={handleCreateNewMPIF}>
@@ -482,7 +307,7 @@ export function Dashboard({ className }: DashboardProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <FileUpload onFileLoad={handleFileLoad} />
+                  <FileUpload onFileLoad={loadMPIFFile} />
                 </CardContent>
               </Card>
             </div>

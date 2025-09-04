@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Characterization, PXRDData, TGAData } from '@/types/mpif';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
@@ -29,6 +29,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     setValue,
     control,
     formState: { errors, isDirty },
+    getValues,
   } = useForm<Characterization>({
     defaultValues: data || {
       pxrd: undefined,
@@ -107,6 +108,21 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
 
     onSave(formData);
   };
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (hasChanges) {
+        handleSubmit(onSubmit)();
+      }
+    };
+
+    const formElement = document.querySelector('form');
+    formElement?.addEventListener('focusout', handleBlur);
+
+    return () => {
+      formElement?.removeEventListener('focusout', handleBlur);
+    };
+  }, [hasChanges, handleSubmit, onSubmit]);
 
   const handleAifFileLoad = (content: string, filename: string) => {
     setAifContent(content);
@@ -302,9 +318,9 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       )}
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={!hasChanges}>
+        {/* <Button type="submit" disabled={!hasChanges}>
           Save Characterization Data
-        </Button>
+        </Button> */}
       </div>
     </form>
   );

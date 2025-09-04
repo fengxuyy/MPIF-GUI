@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductInfo } from '@/types/mpif';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CIFFileUpload } from '../ui/CIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
 
@@ -23,6 +23,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
     handleSubmit,
     control,
     formState: { errors, isDirty },
+    getValues,
   } = useForm<ProductInfo>({
     defaultValues: data || {
       type: 'porous framework material',
@@ -52,6 +53,21 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
     }
     onSave(formData);
   };
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (hasChanges) {
+        handleSubmit(onSubmit)();
+      }
+    };
+
+    const formElement = document.querySelector('form');
+    formElement?.addEventListener('focusout', handleBlur);
+
+    return () => {
+      formElement?.removeEventListener('focusout', handleBlur);
+    };
+  }, [hasChanges, handleSubmit, onSubmit]);
 
   const handleCifFileLoad = (content: string, filename: string) => {
     setCifContent(content);
@@ -277,9 +293,9 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
       </Card>
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={!hasChanges}>
+        {/* <Button type="submit" disabled={!hasChanges}>
           Save Product Information
-        </Button>
+        </Button> */}
       </div>
     </form>
   );

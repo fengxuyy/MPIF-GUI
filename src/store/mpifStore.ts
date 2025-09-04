@@ -41,9 +41,7 @@ const createDefaultMPIFData = (): MPIFData => ({
     creationDate: new Date().toISOString().split('T')[0],
     generatorVersion: '1.0.0',
     publicationDOI: '',
-    procedureStatus: 'test'
-  },
-  authorDetails: {
+    procedureStatus: 'test',
     name: '',
     email: '',
     orcid: '',
@@ -103,15 +101,15 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
     errors.push({ field: 'creationDate', message: 'Creation date is required', section: 'metadata' });
   }
 
-  // Validate author details
-  if (!data.authorDetails.name) {
-    errors.push({ field: 'name', message: 'Author name is required', section: 'authorDetails' });
+  // Validate author details in metadata
+  if (!data.metadata.name) {
+    errors.push({ field: 'name', message: 'Author name is required', section: 'metadata' });
   }
-  if (!data.authorDetails.email) {
-    errors.push({ field: 'email', message: 'Author email is required', section: 'authorDetails' });
+  if (!data.metadata.email) {
+    errors.push({ field: 'email', message: 'Author email is required', section: 'metadata' });
   }
-  if (!data.authorDetails.orcid) {
-    errors.push({ field: 'orcid', message: 'ORCID is required', section: 'authorDetails' });
+  if (!data.metadata.orcid) {
+    errors.push({ field: 'orcid', message: 'ORCID is required', section: 'metadata' });
   }
 
   // Validate product info

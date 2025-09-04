@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SynthesisDetails } from '@/types/mpif';
 import { Plus, Trash2 } from 'lucide-react';
 import { EditableSelect } from '../ui/EditableSelect';
+import { useEffect } from 'react';
 
 interface SynthesisDetailsFormProps {
   data?: SynthesisDetails;
@@ -19,6 +20,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
     handleSubmit,
     control,
     formState: { errors, isDirty },
+    getValues,
   } = useForm<SynthesisDetails>({
     defaultValues: data || {
       substrates: [{ id: '1', name: '', amount: 0, amountUnit: 'mg' }],
@@ -66,6 +68,21 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
   const onSubmit = (formData: SynthesisDetails) => {
     onSave(formData);
   };
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (isDirty) {
+        onSave(getValues());
+      }
+    };
+
+    const formElement = document.querySelector('form');
+    formElement?.addEventListener('focusout', handleBlur);
+
+    return () => {
+      formElement?.removeEventListener('focusout', handleBlur);
+    };
+  }, [isDirty, onSave, getValues]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -378,7 +395,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         <CardContent className="space-y-4">
           {vesselFields.map((field, index) => (
             <div key={field.id} className="p-4 border rounded-lg space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>ID</Label>
                   <Input value={`V${index + 1}`} disabled />
@@ -427,7 +444,8 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                     )}
                   />
                 </div>
-
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`vessels.${index}.material`}>Material *</Label>
                   <Input
@@ -684,9 +702,9 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
       </Card>
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={!isDirty}>
+        {/* <Button type="submit" disabled={!isDirty}>
           Save Synthesis Details
-        </Button>
+        </Button> */}
       </div>
     </form>
   );

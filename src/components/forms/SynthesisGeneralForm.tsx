@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SynthesisGeneral } from '@/types/mpif';
 import { EditableSelect } from '../ui/EditableSelect';
 import { Controller } from 'react-hook-form';
+import { useEffect } from 'react';
 
 interface SynthesisGeneralFormProps {
   data?: SynthesisGeneral;
@@ -20,6 +21,7 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
     watch,
     control,
     formState: { errors, isDirty },
+    getValues,
   } = useForm<SynthesisGeneral>({
     defaultValues: data || {
       performedDate: new Date().toISOString().split('T')[0],
@@ -46,6 +48,21 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
   const onSubmit = (formData: SynthesisGeneral) => {
     onSave(formData);
   };
+
+  useEffect(() => {
+    const handleBlur = () => {
+      if (isDirty) {
+        onSave(getValues());
+      }
+    };
+
+    const formElement = document.querySelector('form');
+    formElement?.addEventListener('focusout', handleBlur);
+
+    return () => {
+      formElement?.removeEventListener('focusout', handleBlur);
+    };
+  }, [isDirty, onSave, getValues]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -483,9 +500,9 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
       </Card>
 
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={!isDirty}>
+        {/* <Button type="submit" disabled={!isDirty}>
           Save Synthesis Conditions
-        </Button>
+        </Button> */}
       </div>
     </form>
   );

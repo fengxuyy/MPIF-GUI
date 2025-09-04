@@ -1,7 +1,6 @@
 import {
   MPIFData,
   MPIFMetadata,
-  AuthorDetails,
   ProductInfo,
   SynthesisGeneral,
   SynthesisDetails,
@@ -24,7 +23,6 @@ export class MPIFParser {
 
     const data: MPIFData = {
       metadata: this.parseMetadata(),
-      authorDetails: this.parseAuthorDetails(),
       productInfo: this.parseProductInfo(),
       synthesisGeneral: this.parseSynthesisGeneral(),
       synthesisDetails: this.parseSynthesisDetails(),
@@ -55,11 +53,11 @@ export class MPIFParser {
 
     // Section 1: Author Details
     result += '#Section 1: Author details\n';
-    result += `_mpif_audit_contact_author_name\t'${data.authorDetails.name}'\n`;
-    result += `_mpif_audit_contact_author_email\t${data.authorDetails.email}\n`;
-    result += `_mpif_audit_contact_author_id_orcid\t${data.authorDetails.orcid}\n`;
-    result += `_mpif_audit_contact_author_address\t'${data.authorDetails.address || ''}'\n`;
-    result += `_mpif_audit_contact_author_phone\t${data.authorDetails.phone || '?'}\n\n`;
+    result += `_mpif_audit_contact_author_name\t'${data.metadata.name}'\n`;
+    result += `_mpif_audit_contact_author_email\t${data.metadata.email}\n`;
+    result += `_mpif_audit_contact_author_id_orcid\t${data.metadata.orcid}\n`;
+    result += `_mpif_audit_contact_author_address\t'${data.metadata.address || ''}'\n`;
+    result += `_mpif_audit_contact_author_phone\t${data.metadata.phone || '?'}\n\n`;
 
     // Section 2: Product Information
     result += '#Section 2: Product General Information\n';
@@ -240,18 +238,15 @@ export class MPIFParser {
     metadata.generatorVersion = this.extractValue('_mpif_audit_generator_version') || '';
     metadata.publicationDOI = this.extractValue('_mpif_audit_publication_doi')?.replace(/'/g, '') || '';
     metadata.procedureStatus = this.extractValue('_mpif_audit_procedure_status')?.replace(/'/g, '') as any || 'test';
+    
+    // Parse author details into metadata
+    metadata.name = this.extractValue('_mpif_audit_contact_author_name')?.replace(/'/g, '') || '';
+    metadata.email = this.extractValue('_mpif_audit_contact_author_email') || '';
+    metadata.orcid = this.extractValue('_mpif_audit_contact_author_id_orcid') || '';
+    metadata.address = this.extractValue('_mpif_audit_contact_author_address')?.replace(/'/g, '') || '';
+    metadata.phone = this.extractValue('_mpif_audit_contact_author_phone') || '';
 
     return metadata as MPIFMetadata;
-  }
-
-  private parseAuthorDetails(): AuthorDetails {
-    return {
-      name: this.extractValue('_mpif_audit_contact_author_name')?.replace(/'/g, '') || '',
-      email: this.extractValue('_mpif_audit_contact_author_email') || '',
-      orcid: this.extractValue('_mpif_audit_contact_author_id_orcid') || '',
-      address: this.extractValue('_mpif_audit_contact_author_address')?.replace(/'/g, '') || '',
-      phone: this.extractValue('_mpif_audit_contact_author_phone') || ''
-    };
   }
 
   private parseProductInfo(): ProductInfo {
