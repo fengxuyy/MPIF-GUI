@@ -29,10 +29,6 @@ interface MPIFStore {
   // Validation
   validateData: () => ValidationResult;
   
-  // Auto-save
-  enableAutoSave: () => void;
-  saveToLocalStorage: () => void;
-  loadFromLocalStorage: () => boolean;
 }
 
 const createDefaultMPIFData = (): MPIFData => ({
@@ -399,52 +395,5 @@ export const useMPIFStore = create<MPIFStore>()(
       return validation;
     },
 
-    enableAutoSave: () => {
-      // Set up auto-save interval (every 30 seconds)
-      setInterval(() => {
-        if (get().dashboard.hasUnsavedChanges) {
-          get().saveToLocalStorage();
-        }
-      }, 30000);
-    },
-
-    saveToLocalStorage: () => {
-      const data = get().mpifData;
-      if (data) {
-        localStorage.setItem('mpif-autosave', JSON.stringify(data));
-        localStorage.setItem('mpif-autosave-timestamp', new Date().toISOString());
-      }
-    },
-
-    loadFromLocalStorage: () => {
-      try {
-        const savedData = localStorage.getItem('mpif-autosave');
-        const timestamp = localStorage.getItem('mpif-autosave-timestamp');
-        
-        if (savedData && timestamp) {
-          const data = JSON.parse(savedData) as MPIFData;
-          
-          set({
-            mpifData: data,
-            validation: {
-              isValid: true,
-              errors: []
-            },
-            fileState: {
-              fileName: 'Autosaved Data',
-              lastSaved: new Date(timestamp),
-              isLoading: false,
-              error: undefined
-            }
-          });
-          
-          return true;
-        }
-      } catch (error) {
-        console.error('Failed to load from localStorage:', error);
-      }
-      
-      return false;
-    }
   }))
 );

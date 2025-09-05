@@ -109,11 +109,11 @@ export function Dashboard({ className }: DashboardProps) {
         }
         await loadMPIFFile(content, file.name);
       } catch (error) {
-        // You might want to show an error to the user here
-        console.error(error);
+        // Error handling could be improved with user notification
+        console.error('File upload error:', error);
       }
     } else {
-      // Show an error about invalid file type
+      // TODO: Show user-friendly error notification
       console.error('Invalid file type. Please upload a .mpif file');
     }
   }, [loadMPIFFile]);
@@ -218,15 +218,15 @@ export function Dashboard({ className }: DashboardProps) {
         setExportDialogOpen(false);
       } catch (error) {
         console.error('Export failed:', error);
-        // Optionally, update the store with an error message
+        // TODO: Show user-friendly error notification
       }
     }, 100); // Give a moment for the blur to trigger the save
   };
 
   const handleDocumentation = () => {
-    // Placeholder for documentation functionality
+    // TODO: Implement documentation functionality
     // This could open a help modal, navigate to docs, or open external documentation
-    console.log('Documentation clicked');
+    window.open('https://github.com/your-repo/docs', '_blank');
   };
 
 
@@ -502,31 +502,6 @@ export function Dashboard({ className }: DashboardProps) {
           </DialogContent>
         </Dialog>
 
-        <style>{`
-          @keyframes blob {
-            0% {
-              transform: translate(0px, 0px) scale(1);
-            }
-            33% {
-              transform: translate(30px, -50px) scale(1.1);
-            }
-            66% {
-              transform: translate(-20px, 20px) scale(0.9);
-            }
-            100% {
-              transform: translate(0px, 0px) scale(1);
-            }
-          }
-          .animate-blob {
-            animation: blob 7s infinite;
-          }
-          .animation-delay-2000 {
-            animation-delay: 2s;
-          }
-          .animation-delay-4000 {
-            animation-delay: 4s;
-          }
-        `}</style>
       </div>
     </div>
   );
