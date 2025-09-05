@@ -1,27 +1,35 @@
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SynthesisGeneral } from '@/types/mpif';
-import { EditableSelect } from '../ui/EditableSelect';
-import { Controller } from 'react-hook-form';
 import { useEffect } from 'react';
+import { EditableSelect } from '../ui/EditableSelect';
+import { cn } from '@/lib/utils';
+import { useMPIFStore } from '@/store/mpifStore';
 
-interface SynthesisGeneralFormProps {
-  data?: SynthesisGeneral;
-  onSave: (data: SynthesisGeneral) => void;
-  onUnsavedChange: () => void;
+interface ValidationError {
+  field: string;
+  message: string;
+  section: string;
 }
 
-export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: SynthesisGeneralFormProps) {
+interface SynthesisGeneralFormProps {
+  data: SynthesisGeneral;
+  onSave: (data: SynthesisGeneral) => void;
+  onUnsavedChange: () => void;
+  errors?: ValidationError[];
+}
+
+export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [] }: SynthesisGeneralFormProps) {
+  const { dashboard } = useMPIFStore();
   const {
     register,
     handleSubmit,
-    watch,
     control,
-    formState: { errors, isDirty },
+    formState: { errors: formErrors, isDirty },
     getValues,
+    reset,
   } = useForm<SynthesisGeneral>({
     defaultValues: data || {
       performedDate: new Date().toISOString().split('T')[0],
@@ -30,99 +38,100 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
       reactionType: 'mix',
       reactionTemperature: 25,
       temperatureController: 'ambient',
-      reactionTime: 24,
+      reactionTime: 1,
       reactionTimeUnit: 'h',
       reactionAtmosphere: 'air',
       reactionContainer: '',
-      productAmount: 0,
+      reactionNote: '',
+      productAmount: undefined,
       productAmountUnit: 'mg',
-      scale: 'milligram'
+      productYield: undefined,
+      scale: 'milligram',
+      safetyNote: ''
     }
   });
 
-  // Watch for changes to trigger unsaved state
-  if (isDirty) {
-    onUnsavedChange();
-  }
+  // Helper function to check if a field has validation errors
+  const hasValidationError = (fieldName: string) => {
+    return errors.some(error => error.field === fieldName);
+  };
 
   const onSubmit = (formData: SynthesisGeneral) => {
     onSave(formData);
   };
 
+  // Reset form when data changes
   useEffect(() => {
-    const handleBlur = () => {
-      if (isDirty) {
+    reset(data);
+  }, [data, reset]);
+
+  // Watch for changes to trigger unsaved state and auto-save
+  useEffect(() => {
+    if (isDirty) {
+      onUnsavedChange();
+      // Auto-save after a short delay
+      const timeoutId = setTimeout(() => {
         onSave(getValues());
-      }
-    };
-
-    const formElement = document.querySelector('form');
-    formElement?.addEventListener('focusout', handleBlur);
-
-    return () => {
-      formElement?.removeEventListener('focusout', handleBlur);
-    };
-  }, [isDirty, onSave, getValues]);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isDirty, onUnsavedChange, onSave, getValues]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
-          <CardTitle>General Information</CardTitle>
+          <CardTitle>Laboratory Conditions</CardTitle>
           <CardDescription>
-            When and where the synthesis was performed
+            Environmental conditions during synthesis
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="performedDate">Performed Date *</Label>
-              <Input
-                id="performedDate"
-                type="date"
-                {...register('performedDate', { required: 'Date is required' })}
-              />
-              {errors.performedDate && (
-                <p className="text-sm text-red-600">{errors.performedDate.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="labTemperature">Lab Temperature (°C) *</Label>
+              <Label htmlFor="labTemperature">Lab Temperature (°C)</Label>
               <Input
                 id="labTemperature"
                 type="number"
                 step="0.1"
                 {...register('labTemperature', {
-                  required: 'Lab temperature is required',
                   valueAsNumber: true,
-                  min: { value: -50, message: 'Temperature too low' },
-                  max: { value: 100, message: 'Temperature too high' }
+                  min: { value: -273.15, message: 'Temperature must be above absolute zero' }
                 })}
-                placeholder="25"
+                className={cn(hasValidationError('labTemperature') && "border-red-500 ring-red-500")}
               />
-              {errors.labTemperature && (
-                <p className="text-sm text-red-600">{errors.labTemperature.message}</p>
+              {formErrors.labTemperature && (
+                <p className="text-sm text-red-600">{formErrors.labTemperature.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="labHumidity">Lab Humidity (%) *</Label>
+              <Label htmlFor="labHumidity">Lab Humidity (%)</Label>
               <Input
                 id="labHumidity"
                 type="number"
                 step="1"
                 {...register('labHumidity', {
-                  required: 'Lab humidity is required',
                   valueAsNumber: true,
-                  min: { value: 0, message: 'Humidity must be 0-100%' },
-                  max: { value: 100, message: 'Humidity must be 0-100%' }
+                  min: { value: 0, message: 'Humidity must be between 0 and 100%' },
+                  max: { value: 100, message: 'Humidity must be between 0 and 100%' }
                 })}
-                placeholder="50"
+                className={cn(hasValidationError('labHumidity') && "border-red-500 ring-red-500")}
               />
-              {errors.labHumidity && (
-                <p className="text-sm text-red-600">{errors.labHumidity.message}</p>
+              {formErrors.labHumidity && (
+                <p className="text-sm text-red-600">{formErrors.labHumidity.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="performedDate">Performed Date</Label>
+              <Input
+                id="performedDate"
+                type="date"
+                {...register('performedDate')}
+              />
             </div>
           </div>
         </CardContent>
@@ -132,125 +141,89 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
         <CardHeader>
           <CardTitle>Reaction Conditions</CardTitle>
           <CardDescription>
-            Temperature, time, atmosphere, and other reaction parameters
+            Synthesis reaction parameters and conditions
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="reactionType">Reaction Type *</Label>
+              <Label htmlFor="reactionType">Reaction Type</Label>
               <Controller
                 name="reactionType"
                 control={control}
-                rules={{ required: 'Reaction type is required' }}
                 render={({ field }) => (
                   <EditableSelect
                     {...field}
-                    options={[
-                      'mix',
-                      'diffusion',
-                      'evaporation',
-                      'microwave',
-                      'mechanochemical',
-                      'electrochemical',
-                      'sonochemical',
-                      'photochemical',
-                      'flow',
-                    ]}
+                    options={['mix', 'diffusion', 'evaporation', 'microwave', 'mechanochemical', 'electrochemical', 'sonochemical', 'photochemical', 'flow', 'other']}
                   />
                 )}
               />
-              {errors.reactionType && (
-                <p className="text-sm text-red-600">{errors.reactionType.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reactionAtmosphere">Reaction Atmosphere *</Label>
-              <Controller
-                name="reactionAtmosphere"
-                control={control}
-                rules={{ required: 'Atmosphere is required' }}
-                render={({ field }) => (
-                  <EditableSelect
-                    {...field}
-                    options={['air', 'dry', 'inert', 'vacuum']}
-                  />
-                )}
-              />
-              {errors.reactionAtmosphere && (
-                <p className="text-sm text-red-600">{errors.reactionAtmosphere.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reactionTemperature">Reaction Temperature (°C) *</Label>
+              <Label htmlFor="reactionTemperature">Reaction Temperature (°C)</Label>
               <Input
                 id="reactionTemperature"
                 type="number"
                 step="0.1"
                 {...register('reactionTemperature', {
-                  required: 'Reaction temperature is required',
                   valueAsNumber: true
                 })}
-                placeholder="120"
               />
-              {errors.reactionTemperature && (
-                <p className="text-sm text-red-600">{errors.reactionTemperature.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="temperatureController">Temperature Controller *</Label>
+              <Label htmlFor="temperatureController">Temperature Controller</Label>
               <Controller
                 name="temperatureController"
                 control={control}
-                rules={{ required: 'Temperature controller is required' }}
                 render={({ field }) => (
                   <EditableSelect
                     {...field}
-                    options={[
-                      'ambient',
-                      'oven',
-                      'water_bath',
-                      'oil_bath',
-                      'dry_bath',
-                      'hot_plate',
-                      'microwave',
-                      'furnace',
-                    ]}
+                    options={['ambient', 'oven', 'oil_bath', 'water_bath', 'dry_bath', 'hot_plate', 'microwave', 'furnace', 'other', 'liquid_bath']}
                   />
                 )}
               />
-              {errors.temperatureController && (
-                <p className="text-sm text-red-600">{errors.temperatureController.message}</p>
-              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reactionTime">Reaction Time *</Label>
+              <Label htmlFor="reactionAtmosphere">Reaction Atmosphere</Label>
+              <Controller
+                name="reactionAtmosphere"
+                control={control}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['air', 'dry', 'inert', 'vacuum', 'other']}
+                  />
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="reactionTime">Reaction Time</Label>
               <Input
                 id="reactionTime"
                 type="number"
                 step="0.1"
                 {...register('reactionTime', {
-                  required: 'Reaction time is required',
                   valueAsNumber: true,
-                  min: { value: 0, message: 'Time must be positive' }
+                  min: { value: 0.01, message: 'Reaction time must be positive' }
                 })}
-                placeholder="24"
+                className={cn(hasValidationError('reactionTime') && "border-red-500 ring-red-500")}
               />
-              {errors.reactionTime && (
-                <p className="text-sm text-red-600">{errors.reactionTime.message}</p>
+              {formErrors.reactionTime && (
+                <p className="text-sm text-red-600">{formErrors.reactionTime.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reactionTimeUnit">Time Unit *</Label>
+              <Label htmlFor="reactionTimeUnit">Time Unit</Label>
               <Controller
                 name="reactionTimeUnit"
                 control={control}
-                rules={{ required: 'Time unit is required' }}
                 render={({ field }) => (
                   <EditableSelect
                     {...field}
@@ -258,223 +231,15 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
                   />
                 )}
               />
-              {errors.reactionTimeUnit && (
-                <p className="text-sm text-red-600">{errors.reactionTimeUnit.message}</p>
-              )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reactionContainer">Reaction Container *</Label>
+            <Label htmlFor="reactionContainer">Reaction Container</Label>
             <Input
               id="reactionContainer"
-              {...register('reactionContainer', { required: 'Container description is required' })}
-              placeholder="20 mL glass vial, stainless steel autoclave, etc."
+              {...register('reactionContainer')}
             />
-            {errors.reactionContainer && (
-              <p className="text-sm text-red-600">{errors.reactionContainer.message}</p>
-            )}
-          </div>
-
-          {/* Method-specific Parameters inline under Reaction Conditions */}
-          {/* Evaporation */}
-          {watch('reactionType') === 'evaporation' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="evaporationMethod">Evaporation Method</Label>
-                <select
-                  id="evaporationMethod"
-                  {...register('evaporationMethod')}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="ambient">ambient</option>
-                  <option value="reduced_pressure">reduced pressure</option>
-                  <option value="spray_drying">spray drying</option>
-                  <option value="other">other</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Microwave */}
-          {watch('reactionType') === 'microwave' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="microwavePower">Microwave Power (W)</Label>
-                <Input id="microwavePower" type="number" step="0.1" {...register('microwavePower', { valueAsNumber: true })} />
-              </div>
-            </div>
-          )}
-
-          {/* Mechanochemical */}
-          {watch('reactionType') === 'mechanochemical' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="mechanochemicalMethod">Mechanochemical Method</Label>
-                <select id="mechanochemicalMethod" {...register('mechanochemicalMethod')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="ball_milling">ball milling</option>
-                  <option value="grinding">grinding</option>
-                  <option value="screw_extruder">screw extruder</option>
-                  <option value="other">other</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Electrochemical */}
-          {watch('reactionType') === 'electrochemical' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="electrochemicalCathode">Electrochemical Cathode</Label>
-                <Input id="electrochemicalCathode" {...register('electrochemicalCathode')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="electrochemicalAnode">Electrochemical Anode</Label>
-                <Input id="electrochemicalAnode" {...register('electrochemicalAnode')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="electrochemicalReference">Reference Electrode</Label>
-                <Input id="electrochemicalReference" {...register('electrochemicalReference')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="electrochemicalVoltage">Applied Voltage (V)</Label>
-                <Input id="electrochemicalVoltage" type="number" step="0.1" {...register('electrochemicalVoltage', { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="electrochemicalCurrent">Applied Current (A)</Label>
-                <Input id="electrochemicalCurrent" type="number" step="0.1" {...register('electrochemicalCurrent', { valueAsNumber: true })} />
-              </div>
-            </div>
-          )}
-
-          {/* Sonochemical */}
-          {watch('reactionType') === 'sonochemical' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="sonicationMethod">Sonication Method</Label>
-                <select id="sonicationMethod" {...register('sonicationMethod')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="bath">ultrasonic bath</option>
-                  <option value="probe">ultrasonic probe</option>
-                  <option value="other">other</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sonicationPower">Sonication Power</Label>
-                <Input id="sonicationPower" type="number" step="0.1" {...register('sonicationPower', { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sonicationPowerUnit">Power Unit</Label>
-                <select id="sonicationPowerUnit" {...register('sonicationPowerUnit')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="W">W</option>
-                  <option value="kHz">kHz</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Photochemical */}
-          {watch('reactionType') === 'photochemical' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="photochemicalWavelength">Wavelength (nm)</Label>
-                <Input id="photochemicalWavelength" type="number" step="0.1" {...register('photochemicalWavelength', { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="photochemicalPower">Power (W)</Label>
-                <Input id="photochemicalPower" type="number" step="0.1" {...register('photochemicalPower', { valueAsNumber: true })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="photochemicalSource">Light Source</Label>
-                <Input id="photochemicalSource" {...register('photochemicalSource')} placeholder="Hg lamp, LED, etc." />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Information</CardTitle>
-          <CardDescription>
-            Amount, yield, and scale of the synthesized product
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="productAmount">Product Amount *</Label>
-              <Input
-                id="productAmount"
-                type="number"
-                step="0.001"
-                {...register('productAmount', {
-                  required: 'Product amount is required',
-                  valueAsNumber: true,
-                  min: { value: 0, message: 'Amount must be positive' }
-                })}
-                placeholder="125.5"
-              />
-              {errors.productAmount && (
-                <p className="text-sm text-red-600">{errors.productAmount.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="productAmountUnit">Amount Unit *</Label>
-              <Controller
-                name="productAmountUnit"
-                control={control}
-                rules={{ required: 'Unit is required' }}
-                render={({ field }) => (
-                  <EditableSelect
-                    {...field}
-                    options={['mg', 'g', 'kg', 'μL', 'mL', 'L']}
-                  />
-                )}
-              />
-              {errors.productAmountUnit && (
-                <p className="text-sm text-red-600">{errors.productAmountUnit.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="scale">Synthesis Scale *</Label>
-              <Controller
-                name="scale"
-                control={control}
-                rules={{ required: 'Scale is required' }}
-                render={({ field }) => (
-                  <EditableSelect
-                    {...field}
-                    options={['milligram', 'gram', 'multigram', 'kilogram']}
-                  />
-                )}
-              />
-              {errors.scale && (
-                <p className="text-sm text-red-600">{errors.scale.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="productYield">Yield (%)</Label>
-              <Input
-                id="productYield"
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                {...register('productYield', {
-                  valueAsNumber: true,
-                  min: { value: 0, message: 'Yield must be positive' },
-                  max: { value: 100, message: 'Yield cannot exceed 100%' }
-                })}
-                placeholder="75.3"
-              />
-              {errors.productYield && (
-                <p className="text-sm text-red-600">{errors.productYield.message}</p>
-              )}
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -483,8 +248,83 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
               id="reactionNote"
               {...register('reactionNote')}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Additional observations, modifications, or notes about the synthesis..."
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Information</CardTitle>
+          <CardDescription>
+            Yield and scale information for the synthesized product
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="productAmount">Product Amount</Label>
+              <Input
+                id="productAmount"
+                type="number"
+                step="0.001"
+                {...register('productAmount', {
+                  valueAsNumber: true,
+                  min: { value: 0.001, message: 'Product amount must be positive' }
+                })}
+                className={cn(hasValidationError('productAmount') && "border-red-500 ring-red-500")}
+              />
+              {formErrors.productAmount && (
+                <p className="text-sm text-red-600">{formErrors.productAmount.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="productAmountUnit">Amount Unit</Label>
+              <Controller
+                name="productAmountUnit"
+                control={control}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['mg', 'g', 'kg', 'μL', 'mL', 'L']}
+                  />
+                )}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="productYield">Product Yield (%)</Label>
+              <Input
+                id="productYield"
+                type="number"
+                step="0.1"
+                {...register('productYield', {
+                  valueAsNumber: true,
+                  min: { value: 0, message: 'Yield must be positive' },
+                  max: { value: 100, message: 'Yield cannot exceed 100%' }
+                })}
+              />
+              {formErrors.productYield && (
+                <p className="text-sm text-red-600">{formErrors.productYield.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="scale">Synthesis Scale</Label>
+              <Controller
+                name="scale"
+                control={control}
+                render={({ field }) => (
+                  <EditableSelect
+                    {...field}
+                    options={['milligram', 'gram', 'multigram', 'kilogram']}
+                  />
+                )}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -493,17 +333,11 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange }: Synthesi
               id="safetyNote"
               {...register('safetyNote')}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Safety precautions, hazards, protective equipment used..."
             />
           </div>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end space-x-2">
-        {/* <Button type="submit" disabled={!isDirty}>
-          Save Synthesis Conditions
-        </Button> */}
       </div>
     </form>
   );
-} 
+}

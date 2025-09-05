@@ -7,25 +7,36 @@ import { SynthesisDetails } from '@/types/mpif';
 import { Plus, Trash2 } from 'lucide-react';
 import { EditableSelect } from '../ui/EditableSelect';
 import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { useMPIFStore } from '@/store/mpifStore';
 
-interface SynthesisDetailsFormProps {
-  data?: SynthesisDetails;
-  onSave: (data: SynthesisDetails) => void;
-  onUnsavedChange: () => void;
+interface ValidationError {
+  field: string;
+  message: string;
+  section: string;
 }
 
-export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: SynthesisDetailsFormProps) {
+interface SynthesisDetailsFormProps {
+  data: SynthesisDetails;
+  onSave: (data: SynthesisDetails) => void;
+  onUnsavedChange: () => void;
+  errors?: ValidationError[];
+}
+
+export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [] }: SynthesisDetailsFormProps) {
+  const { dashboard } = useMPIFStore();
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isDirty },
+    formState: { errors: formErrors, isDirty },
     getValues,
+    reset,
   } = useForm<SynthesisDetails>({
     defaultValues: data || {
-      substrates: [{ id: '1', name: '', amount: 0, amountUnit: 'mg' }],
-      solvents: [{ id: '1', name: '', amount: 0, amountUnit: 'mL' }],
-      vessels: [{ id: '1', volume: 0, volumeUnit: 'mL', material: '', type: 'Vial', purpose: 'Reaction' }],
+      substrates: [{ id: '1', name: '', amount: undefined, amountUnit: 'mg' }],
+      solvents: [{ id: '1', name: '', amount: undefined, amountUnit: 'mL' }],
+      vessels: [{ id: '1', volume: undefined, volumeUnit: 'mL', material: '', type: 'Vial', purpose: 'Reaction' }],
       hardware: [{ id: '1', purpose: 'Heating/Cooling', generalName: '' }],
       steps: [{ id: '1', type: 'Preparation', atmosphere: 'Air', detail: '' }],
       procedureFull: ''
@@ -60,32 +71,36 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
     name: 'steps'
   });
 
-  // Watch for changes to trigger unsaved state
-  if (isDirty) {
-    onUnsavedChange();
-  }
+  // Helper function to check if a field has validation errors
+  const hasValidationError = (fieldName: string) => {
+    return errors.some(error => error.field === fieldName);
+  };
 
   const onSubmit = (formData: SynthesisDetails) => {
     onSave(formData);
   };
 
+  // Reset form when data changes
   useEffect(() => {
-    const handleBlur = () => {
-      if (isDirty) {
+    reset(data);
+  }, [data, reset]);
+
+  // Watch for changes to trigger unsaved state and auto-save
+  useEffect(() => {
+    if (isDirty) {
+      onUnsavedChange();
+      // Auto-save after a short delay
+      const timeoutId = setTimeout(() => {
         onSave(getValues());
-      }
-    };
-
-    const formElement = document.querySelector('form');
-    formElement?.addEventListener('focusout', handleBlur);
-
-    return () => {
-      formElement?.removeEventListener('focusout', handleBlur);
-    };
-  }, [isDirty, onSave, getValues]);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isDirty, onUnsavedChange, onSave, getValues]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       {/* Substrates */}
       <Card>
         <CardHeader>
@@ -106,113 +121,124 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {substrateFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.name`}>Name *</Label>
-                <Input
-                  {...register(`substrates.${index}.name`, { required: 'Name is required' })}
-                  placeholder="Zinc nitrate hexahydrate"
-                />
-                {errors.substrates?.[index]?.name && (
-                  <p className="text-sm text-red-600">{errors.substrates[index]?.name?.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.molarity`}>Molarity</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  {...register(`substrates.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
-                  placeholder="0.5"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.molarityUnit`}>Molarity Unit</Label>
-                <Controller
-                  name={`substrates.${index}.molarityUnit`}
-                  control={control}
-                  render={({ field }) => (
-                    <EditableSelect
-                      {...field}
-                      value={field.value || ''}
-                      options={['μmol', 'mmol', 'mol', 'kmol']}
-                    />
+            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+              {/* First Row: ID, Name, Molarity, Molarity Unit */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>ID</Label>
+                  <Input value={`R${index + 1}`} disabled />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.name`}>Name *</Label>
+                  <Input
+                    {...register(`substrates.${index}.name`, { required: 'Name is required' })}
+                    className={cn(hasValidationError(`substrates[${index}].name`) && "border-red-500 ring-red-500")}
+                  />
+                  {formErrors.substrates?.[index]?.name && (
+                    <p className="text-sm text-red-600">{formErrors.substrates[index]?.name?.message}</p>
                   )}
-                />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.molarity`}>Molarity</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    {...register(`substrates.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.molarityUnit`}>Molarity Unit</Label>
+                  <Controller
+                    name={`substrates.${index}.molarityUnit`}
+                    control={control}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        value={field.value || ''}
+                        options={['μmol', 'mmol', 'mol', 'kmol']}
+                      />
+                    )}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.amount`}>Amount *</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  {...register(`substrates.${index}.amount`, { 
-                    required: 'Amount is required',
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Amount must be positive' }
-                  })}
-                  placeholder="1.25"
-                />
-                {errors.substrates?.[index]?.amount && (
-                  <p className="text-sm text-red-600">{errors.substrates[index]?.amount?.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.amountUnit`}>Unit *</Label>
-                <Controller
-                  name={`substrates.${index}.amountUnit`}
-                  control={control}
-                  rules={{ required: 'Unit is required' }}
-                  render={({ field }) => (
-                    <EditableSelect
-                      {...field}
-                      options={['mg', 'g', 'kg', 'μL', 'mL', 'L']}
-                    />
+              {/* Second Row: Amount, Unit, Supplier */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.amount`}>Amount *</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    {...register(`substrates.${index}.amount`, { 
+                      required: 'Amount is required',
+                      valueAsNumber: true,
+                      min: { value: 0, message: 'Amount must be positive' }
+                    })}
+                    className={cn(hasValidationError(`substrates[${index}].amount`) && "border-red-500 ring-red-500")}
+                  />
+                  {formErrors.substrates?.[index]?.amount && (
+                    <p className="text-sm text-red-600">{formErrors.substrates[index]?.amount?.message}</p>
                   )}
-                />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.amountUnit`}>Unit *</Label>
+                  <Controller
+                    name={`substrates.${index}.amountUnit`}
+                    control={control}
+                    rules={{ required: 'Unit is required' }}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        options={['mg', 'g', 'kg', 'μL', 'mL', 'L']}
+                        className={cn(hasValidationError(`substrates[${index}].amountUnit`) && "border-red-500 ring-red-500")}
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.supplier`}>Supplier</Label>
+                  <Input
+                    {...register(`substrates.${index}.supplier`)}
+                  />
+                </div>
+
+                {/* Empty column for alignment */}
+                <div></div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.supplier`}>Supplier</Label>
-                <Input
-                  {...register(`substrates.${index}.supplier`)}
-                  placeholder="Supplier name"
-                />
-              </div>
+              {/* Third Row: Purity, CAS, SMILES, Delete Button */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.purity`}>Purity (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    {...register(`substrates.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.purity`}>Purity (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  {...register(`substrates.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
-                  placeholder="99.9"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.casNumber`}>CAS</Label>
+                  <Input
+                    {...register(`substrates.${index}.casNumber`)}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`substrates.${index}.casNumber`}>CAS</Label>
-                <Input
-                  {...register(`substrates.${index}.casNumber`)}
-                  placeholder="12345-67-8"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`substrates.${index}.smiles`}>SMILES</Label>
+                  <Input
+                    {...register(`substrates.${index}.smiles`)}
+                  />
+                </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor={`substrates.${index}.smiles`}>SMILES</Label>
-                <Input
-                  {...register(`substrates.${index}.smiles`)}
-                  placeholder="SMILES string"
-                />
-              </div>
-
-              <div className="flex items-end">
-                {substrateFields.length > 1 && (
+                <div className="flex items-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -221,7 +247,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -248,110 +274,121 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         </CardHeader>
         <CardContent className="space-y-4">
           {solventFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.name`}>Name *</Label>
-                <Input
-                  {...register(`solvents.${index}.name`, { required: 'Name is required' })}
-                  placeholder="DMF, water, ethanol"
-                />
-                {errors.solvents?.[index]?.name && (
-                  <p className="text-sm text-red-600">{errors.solvents[index]?.name?.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.molarity`}>Molarity</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  {...register(`solvents.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
-                  placeholder="0.5"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.molarityUnit`}>Molarity Unit</Label>
-                <Controller
-                  name={`solvents.${index}.molarityUnit`}
-                  control={control}
-                  render={({ field }) => (
-                    <EditableSelect
-                      {...field}
-                      value={field.value || ''}
-                      options={['μmol', 'mmol', 'mol', 'kmol']}
-                    />
+            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+              {/* First Row: ID, Name, Molarity, Molarity Unit */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>ID</Label>
+                  <Input value={`S${index + 1}`} disabled />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.name`}>Name *</Label>
+                  <Input
+                    {...register(`solvents.${index}.name`, { required: 'Name is required' })}
+                    className={cn(hasValidationError(`solvents[${index}].name`) && "border-red-500 ring-red-500")}
+                  />
+                  {formErrors.solvents?.[index]?.name && (
+                    <p className="text-sm text-red-600">{formErrors.solvents[index]?.name?.message}</p>
                   )}
-                />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.molarity`}>Molarity</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    {...register(`solvents.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.molarityUnit`}>Molarity Unit</Label>
+                  <Controller
+                    name={`solvents.${index}.molarityUnit`}
+                    control={control}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        value={field.value || ''}
+                        options={['μmol', 'mmol', 'mol', 'kmol']}
+                      />
+                    )}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.amount`}>Amount *</Label>
-                <Input
-                  type="number"
-                  step="0.001"
-                  {...register(`solvents.${index}.amount`, { 
-                    required: 'Amount is required',
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Amount must be positive' }
-                  })}
-                  placeholder="10.0"
-                />
+              {/* Second Row: Amount, Unit, Supplier */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.amount`}>Amount *</Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    {...register(`solvents.${index}.amount`, { 
+                      required: 'Amount is required',
+                      valueAsNumber: true,
+                      min: { value: 0, message: 'Amount must be positive' }
+                    })}
+                    className={cn(hasValidationError(`solvents[${index}].amount`) && "border-red-500 ring-red-500")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.amountUnit`}>Unit *</Label>
+                  <Controller
+                    name={`solvents.${index}.amountUnit`}
+                    control={control}
+                    rules={{ required: 'Unit is required' }}
+                    render={({ field }) => (
+                      <EditableSelect
+                        {...field}
+                        options={['μL', 'mL', 'L', 'mg', 'g', 'kg']}
+                        className={cn(hasValidationError(`solvents[${index}].amountUnit`) && "border-red-500 ring-red-500")}
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.supplier`}>Supplier</Label>
+                  <Input
+                    {...register(`solvents.${index}.supplier`)}
+                  />
+                </div>
+
+                {/* Empty column for alignment */}
+                <div></div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.amountUnit`}>Unit *</Label>
-                <Controller
-                  name={`solvents.${index}.amountUnit`}
-                  control={control}
-                  rules={{ required: 'Unit is required' }}
-                  render={({ field }) => (
-                    <EditableSelect
-                      {...field}
-                      options={['μL', 'mL', 'L', 'mg', 'g', 'kg']}
-                    />
-                  )}
-                />
-              </div>
+              {/* Third Row: Purity, CAS, SMILES, Delete Button */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.purity`}>Purity (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    {...register(`solvents.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.supplier`}>Supplier</Label>
-                <Input
-                  {...register(`solvents.${index}.supplier`)}
-                  placeholder="Supplier name"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.casNumber`}>CAS</Label>
+                  <Input
+                    {...register(`solvents.${index}.casNumber`)}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.purity`}>Purity (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  {...register(`solvents.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
-                  placeholder="99.9"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`solvents.${index}.smiles`}>SMILES</Label>
+                  <Input
+                    {...register(`solvents.${index}.smiles`)}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`solvents.${index}.casNumber`}>CAS</Label>
-                <Input
-                  {...register(`solvents.${index}.casNumber`)}
-                  placeholder="12345-67-8"
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor={`solvents.${index}.smiles`}>SMILES</Label>
-                <Input
-                  {...register(`solvents.${index}.smiles`)}
-                  placeholder="SMILES string"
-                />
-              </div>
-
-              <div className="flex items-end">
-                {solventFields.length > 1 && (
+                <div className="flex items-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -360,7 +397,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
+                </div>
               </div>
             </div>
           ))}
@@ -426,7 +463,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                       valueAsNumber: true,
                       min: { value: 0, message: 'Volume must be positive' }
                     })}
-                    placeholder="20"
                   />
                 </div>
 
@@ -450,7 +486,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   <Label htmlFor={`vessels.${index}.material`}>Material *</Label>
                   <Input
                     {...register(`vessels.${index}.material`, { required: 'Material is required' })}
-                    placeholder="Glass, PTFE, etc."
                   />
                 </div>
 
@@ -473,7 +508,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   <Label htmlFor={`vessels.${index}.supplier`}>Supplier</Label>
                   <Input
                     {...register(`vessels.${index}.supplier`)}
-                    placeholder="Supplier name"
                   />
                 </div>
 
@@ -492,7 +526,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 <Label htmlFor={`vessels.${index}.note`}>Note</Label>
                 <Input
                   {...register(`vessels.${index}.note`)}
-                  placeholder="Special notes about the vessel"
                 />
               </div>
             </div>
@@ -521,11 +554,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
         <CardContent className="space-y-4">
           {hardwareFields.map((field, index) => (
             <div key={field.id} className="p-4 border rounded-lg space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* First Row: ID, Purpose, General Name, Delete Button */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>ID</Label>
                   <Input value={`H${index + 1}`} disabled />
                 </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor={`hardware.${index}.purpose`}>Purpose *</Label>
                   <Controller
@@ -553,23 +588,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                   <Label htmlFor={`hardware.${index}.generalName`}>General Name *</Label>
                   <Input
                     {...register(`hardware.${index}.generalName`, { required: 'General name is required' })}
-                    placeholder="Hot plate, oven, etc."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`hardware.${index}.productName`}>Product Name</Label>
-                  <Input
-                    {...register(`hardware.${index}.productName`)}
-                    placeholder="Model/brand"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`hardware.${index}.supplier`}>Supplier</Label>
-                  <Input
-                    {...register(`hardware.${index}.supplier`)}
-                    placeholder="Supplier name"
                   />
                 </div>
 
@@ -585,11 +603,28 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 </div>
               </div>
 
+              {/* Second Row: Product Name, Supplier */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`hardware.${index}.productName`}>Product Name</Label>
+                  <Input
+                    {...register(`hardware.${index}.productName`)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`hardware.${index}.supplier`}>Supplier</Label>
+                  <Input
+                    {...register(`hardware.${index}.supplier`)}
+                  />
+                </div>
+              </div>
+
+              {/* Third Row: Note */}
               <div className="space-y-2">
                 <Label htmlFor={`hardware.${index}.note`}>Note</Label>
                 <Input
                   {...register(`hardware.${index}.note`)}
-                  placeholder="Special notes about the hardware"
                 />
               </div>
             </div>
@@ -666,7 +701,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
                 <textarea
                   {...register(`steps.${index}.detail`, { required: 'Details are required' })}
                   className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Describe this step in detail..."
                 />
                 {errors.steps?.[index]?.detail && (
                   <p className="text-sm text-red-600">{errors.steps[index]?.detail?.message}</p>
@@ -692,7 +726,6 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
               id="procedureFull"
               {...register('procedureFull')}
               className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Provide the complete synthesis procedure as continuous text..."
             />
             <p className="text-xs text-muted-foreground">
               Optional: Complete procedure description in paragraph form
@@ -700,6 +733,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange }: Synthesi
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <div className="flex justify-end space-x-2">
         {/* <Button type="submit" disabled={!isDirty}>

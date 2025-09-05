@@ -7,14 +7,24 @@ import { ProductInfo } from '@/types/mpif';
 import { useState, useEffect } from 'react';
 import { CIFFileUpload } from '../ui/CIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
+import { cn } from '@/lib/utils';
+import { useMPIFStore } from '@/store/mpifStore';
+
+interface ValidationError {
+  field: string;
+  message: string;
+  section: string;
+}
 
 interface ProductInfoFormProps {
   data?: ProductInfo;
   onSave: (data: ProductInfo) => void;
   onUnsavedChange: () => void;
+  errors?: ValidationError[];
 }
 
-export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFormProps) {
+export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: ProductInfoFormProps) {
+  const { dashboard } = useMPIFStore();
   const [cifContent, setCifContent] = useState(data?.cif || '');
   const [cifFileName, setCifFileName] = useState('');
 
@@ -22,8 +32,9 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
     register,
     handleSubmit,
     control,
-    formState: { errors, isDirty },
+    formState: { errors: formErrors, isDirty },
     getValues,
+    reset,
   } = useForm<ProductInfo>({
     defaultValues: data || {
       type: 'porous framework material',
@@ -40,11 +51,10 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
     }
   });
 
-  // Watch for changes to trigger unsaved state
-  const hasChanges = isDirty || cifContent !== (data?.cif || '');
-  if (hasChanges) {
-    onUnsavedChange();
-  }
+  // Helper function to check if a field has validation errors
+  const hasValidationError = (fieldName: string) => {
+    return errors.some(error => error.field === fieldName);
+  };
 
   const onSubmit = (formData: ProductInfo) => {
     // Include CIF content if provided
@@ -54,20 +64,30 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
     onSave(formData);
   };
 
+  // Reset form when data changes
   useEffect(() => {
-    const handleBlur = () => {
-      if (hasChanges) {
-        handleSubmit(onSubmit)();
-      }
-    };
+    reset(data);
+    setCifContent(data?.cif || '');
+    setCifFileName('');
+  }, [data, reset]);
 
-    const formElement = document.querySelector('form');
-    formElement?.addEventListener('focusout', handleBlur);
-
-    return () => {
-      formElement?.removeEventListener('focusout', handleBlur);
-    };
-  }, [hasChanges, handleSubmit, onSubmit]);
+  // Watch for changes to trigger unsaved state and auto-save
+  const hasChanges = isDirty || cifContent !== (data?.cif || '');
+  useEffect(() => {
+    if (hasChanges) {
+      onUnsavedChange();
+      // Auto-save after a short delay
+      const timeoutId = setTimeout(() => {
+        const formData = getValues();
+        if (cifContent.trim()) {
+          formData.cif = cifContent;
+        }
+        onSave(formData);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [hasChanges, onUnsavedChange, onSave, getValues, cifContent]);
 
   const handleCifFileLoad = (content: string, filename: string) => {
     setCifContent(content);
@@ -77,6 +97,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
           <CardTitle>Product Identification</CardTitle>
@@ -99,8 +120,8 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                   />
                 )}
               />
-              {errors.type && (
-                <p className="text-sm text-red-600">{errors.type.message}</p>
+              {formErrors.type && (
+                <p className="text-sm text-red-600">{formErrors.type.message}</p>
               )}
             </div>
 
@@ -115,10 +136,10 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                     message: 'Name must be at least 2 characters'
                   }
                 })}
-                placeholder="MOF-5, ZIF-8, UiO-66, etc."
+                className={cn(hasValidationError('commonName') && "border-red-500 ring-red-500")}
               />
-              {errors.commonName && (
-                <p className="text-sm text-red-600">{errors.commonName.message}</p>
+              {formErrors.commonName && (
+                <p className="text-sm text-red-600">{formErrors.commonName.message}</p>
               )}
             </div>
 
@@ -135,8 +156,8 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                   />
                 )}
               />
-              {errors.state && (
-                <p className="text-sm text-red-600">{errors.state.message}</p>
+              {formErrors.state && (
+                <p className="text-sm text-red-600">{formErrors.state.message}</p>
               )}
             </div>
 
@@ -147,10 +168,9 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                 {...register('color', { 
                   required: 'Color is required' 
                 })}
-                placeholder="Colorless, white, blue, etc."
               />
-              {errors.color && (
-                <p className="text-sm text-red-600">{errors.color.message}</p>
+              {formErrors.color && (
+                <p className="text-sm text-red-600">{formErrors.color.message}</p>
               )}
             </div>
 
@@ -167,8 +187,8 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                   />
                 )}
               />
-              {errors.handlingAtmosphere && (
-                <p className="text-sm text-red-600">{errors.handlingAtmosphere.message}</p>
+              {formErrors.handlingAtmosphere && (
+                <p className="text-sm text-red-600">{formErrors.handlingAtmosphere.message}</p>
               )}
             </div>
 
@@ -177,7 +197,6 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
               <Input
                 id="formula"
                 {...register('formula')}
-                placeholder="Zn4O(BDC)3"
               />
               <p className="text-xs text-muted-foreground">
                 Use standard chemical notation
@@ -197,10 +216,9 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                     message: 'Formula weight must be positive'
                   }
                 })}
-                placeholder="543.21"
               />
-              {errors.formulaWeight && (
-                <p className="text-sm text-red-600">{errors.formulaWeight.message}</p>
+              {formErrors.formulaWeight && (
+                <p className="text-sm text-red-600">{formErrors.formulaWeight.message}</p>
               )}
             </div>
 
@@ -214,10 +232,9 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
                     message: 'CAS format: XXXXXX-XX-X'
                   }
                 })}
-                placeholder="123456-78-9"
               />
-              {errors.casNumber && (
-                <p className="text-sm text-red-600">{errors.casNumber.message}</p>
+              {formErrors.casNumber && (
+                <p className="text-sm text-red-600">{formErrors.casNumber.message}</p>
               )}
             </div>
 
@@ -226,7 +243,6 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
               <Input
                 id="ccdcNumber"
                 {...register('ccdcNumber')}
-                placeholder="CCDC 123456"
               />
               <p className="text-xs text-muted-foreground">
                 Cambridge Crystal Database number if available
@@ -238,7 +254,6 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
               <Input
                 id="systematicName"
                 {...register('systematicName')}
-                placeholder="Full IUPAC systematic name if known"
               />
             </div>
           </div>
@@ -249,7 +264,6 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
               id="handlingNote"
               {...register('handlingNote')}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Special handling requirements, safety notes, storage conditions..."
             />
             <p className="text-xs text-muted-foreground">
               Any special handling or safety considerations
@@ -291,6 +305,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange }: ProductInfoFo
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <div className="flex justify-end space-x-2">
         {/* <Button type="submit" disabled={!hasChanges}>

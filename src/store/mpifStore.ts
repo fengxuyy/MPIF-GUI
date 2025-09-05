@@ -14,17 +14,19 @@ interface MPIFStore {
   
   // Actions
   loadMPIFFile: (content: string, fileName: string) => Promise<void>;
+  createNewMPIF: () => void;
   updateMPIFData: (data: Partial<MPIFData>) => void;
   updateSection: (section: keyof MPIFData, data: any) => void;
   
   // UI actions
   setCurrentSection: (section: string) => void;
   setEditing: (isEditing: boolean) => void;
-  toggleDarkMode: () => void;
+  setColumnLayout: (mode: 'single' | 'double') => void;
   
   // File actions
   exportMPIF: () => string;
   resetData: () => void;
+  clearUnsavedChanges: () => void;
   
   // Validation
   validateData: () => ValidationResult;
@@ -41,7 +43,7 @@ const createDefaultMPIFData = (): MPIFData => ({
     creationDate: new Date().toISOString().split('T')[0],
     generatorVersion: '1.0.0',
     publicationDOI: '',
-    procedureStatus: 'test',
+    procedureStatus: '',
     name: '',
     email: '',
     orcid: '',
@@ -49,34 +51,34 @@ const createDefaultMPIFData = (): MPIFData => ({
     phone: ''
   },
   productInfo: {
-    type: 'porous framework material',
+    type: '',
     casNumber: '',
     ccdcNumber: '',
     commonName: '',
     systematicName: '',
     formula: '',
     formulaWeight: undefined,
-    state: 'solid',
-    color: '#000000',
-    handlingAtmosphere: 'air',
+    state: '',
+    color: '',
+    handlingAtmosphere: '',
     handlingNote: ''
   },
   synthesisGeneral: {
-    performedDate: new Date().toISOString().split('T')[0],
-    labTemperature: 25,
-    labHumidity: 50,
-    reactionType: 'mix',
-    reactionTemperature: 25,
-    temperatureController: 'ambient',
-    reactionTime: 1,
-    reactionTimeUnit: 'h',
-    reactionAtmosphere: 'air',
+    performedDate: '',
+    labTemperature: undefined,
+    labHumidity: undefined,
+    reactionType: '',
+    reactionTemperature: undefined,
+    temperatureController: '',
+    reactionTime: undefined,
+    reactionTimeUnit: '',
+    reactionAtmosphere: '',
     reactionContainer: '',
     reactionNote: '',
-    productAmount: 0,
-    productAmountUnit: 'mg',
+    productAmount: undefined,
+    productAmountUnit: '',
     productYield: undefined,
-    scale: 'milligram',
+    scale: '',
     safetyNote: ''
   },
   synthesisDetails: {
@@ -127,8 +129,93 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   if (data.synthesisGeneral.reactionTime <= 0) {
     errors.push({ field: 'reactionTime', message: 'Reaction time must be positive', section: 'synthesisGeneral' });
   }
-  if (data.synthesisGeneral.productAmount <= 0) {
-    errors.push({ field: 'productAmount', message: 'Product amount must be positive', section: 'synthesisGeneral' });
+  // Product amount is optional - no validation needed
+
+  // Validate synthesis details - substrates
+  if (data.synthesisDetails && data.synthesisDetails.substrates) {
+    data.synthesisDetails.substrates.forEach((substrate, index) => {
+      if (!substrate.name || substrate.name.trim() === '') {
+        errors.push({ 
+          field: `substrates[${index}].name`, 
+          message: 'Substrate name is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+      if (substrate.amount === undefined || substrate.amount <= 0) {
+        errors.push({ 
+          field: `substrates[${index}].amount`, 
+          message: 'Substrate amount is required and must be positive', 
+          section: 'synthesisDetails' 
+        });
+      }
+      if (!substrate.amountUnit || substrate.amountUnit.trim() === '') {
+        errors.push({ 
+          field: `substrates[${index}].amountUnit`, 
+          message: 'Substrate amount unit is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+    });
+  }
+
+  // Validate synthesis details - solvents
+  if (data.synthesisDetails && data.synthesisDetails.solvents) {
+    data.synthesisDetails.solvents.forEach((solvent, index) => {
+      if (!solvent.name || solvent.name.trim() === '') {
+        errors.push({ 
+          field: `solvents[${index}].name`, 
+          message: 'Solvent name is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+      if (solvent.amount === undefined || solvent.amount <= 0) {
+        errors.push({ 
+          field: `solvents[${index}].amount`, 
+          message: 'Solvent amount is required and must be positive', 
+          section: 'synthesisDetails' 
+        });
+      }
+      if (!solvent.amountUnit || solvent.amountUnit.trim() === '') {
+        errors.push({ 
+          field: `solvents[${index}].amountUnit`, 
+          message: 'Solvent amount unit is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+    });
+  }
+
+  // Validate synthesis details - vessels
+  if (data.synthesisDetails && data.synthesisDetails.vessels) {
+    data.synthesisDetails.vessels.forEach((vessel, index) => {
+      if (!vessel.material || vessel.material.trim() === '') {
+        errors.push({ 
+          field: `vessels[${index}].material`, 
+          message: 'Vessel material is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+      if (!vessel.type || vessel.type.trim() === '') {
+        errors.push({ 
+          field: `vessels[${index}].type`, 
+          message: 'Vessel type is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+    });
+  }
+
+  // Validate synthesis details - hardware
+  if (data.synthesisDetails && data.synthesisDetails.hardware) {
+    data.synthesisDetails.hardware.forEach((hardware, index) => {
+      if (!hardware.generalName || hardware.generalName.trim() === '') {
+        errors.push({ 
+          field: `hardware[${index}].generalName`, 
+          message: 'Hardware name is required', 
+          section: 'synthesisDetails' 
+        });
+      }
+    });
   }
 
   return {
@@ -145,7 +232,7 @@ export const useMPIFStore = create<MPIFStore>()(
       currentSection: 'metadata',
       isEditing: false,
       hasUnsavedChanges: false,
-      darkMode: false
+      columnLayout: 'single',
     },
     fileState: {
       fileName: undefined,
@@ -164,7 +251,6 @@ export const useMPIFStore = create<MPIFStore>()(
       
       try {
         const data = parseMPIF(content);
-        const validation = validateMPIFData(data);
         
         set({
           mpifData: data,
@@ -174,7 +260,10 @@ export const useMPIFStore = create<MPIFStore>()(
             isLoading: false,
             error: undefined
           },
-          validation,
+          validation: {
+            isValid: true,
+            errors: []
+          },
           dashboard: {
             ...get().dashboard,
             hasUnsavedChanges: false,
@@ -192,22 +281,41 @@ export const useMPIFStore = create<MPIFStore>()(
       }
     },
 
+    createNewMPIF: () => {
+      const newMPIFData = createDefaultMPIFData();
+      set({
+        mpifData: newMPIFData,
+        fileState: {
+          fileName: 'untitled.mpif',
+          lastSaved: undefined,
+          isLoading: false,
+          error: undefined
+        },
+        validation: {
+          isValid: true,
+          errors: []
+        },
+        dashboard: {
+          ...get().dashboard,
+          hasUnsavedChanges: true,
+          isEditing: true,
+          currentSection: 'metadata'
+        }
+      });
+    },
+
     updateMPIFData: (data: Partial<MPIFData>) => {
       const currentData = get().mpifData;
       if (!currentData) {
         const newData = { ...createDefaultMPIFData(), ...data };
-        const validation = validateMPIFData(newData);
         set({
           mpifData: newData,
-          validation,
           dashboard: { ...get().dashboard, hasUnsavedChanges: true }
         });
       } else {
         const updatedData = { ...currentData, ...data };
-        const validation = validateMPIFData(updatedData);
         set({
           mpifData: updatedData,
-          validation,
           dashboard: { ...get().dashboard, hasUnsavedChanges: true }
         });
       }
@@ -219,11 +327,9 @@ export const useMPIFStore = create<MPIFStore>()(
         ...currentData,
         [section]: { ...currentData[section], ...data }
       };
-      const validation = validateMPIFData(updatedData);
       
       set({
         mpifData: updatedData,
-        validation,
         dashboard: { ...get().dashboard, hasUnsavedChanges: true }
       });
     },
@@ -240,26 +346,24 @@ export const useMPIFStore = create<MPIFStore>()(
       });
     },
 
-    toggleDarkMode: () => {
-      const newDarkMode = !get().dashboard.darkMode;
+    setColumnLayout: (mode: 'single' | 'double') => {
       set({
-        dashboard: { ...get().dashboard, darkMode: newDarkMode }
+        dashboard: { ...get().dashboard, columnLayout: mode }
       });
-      
-      // Apply to document
-      if (newDarkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      
-      // Save to localStorage
-      localStorage.setItem('mpif-dark-mode', newDarkMode.toString());
     },
+
 
     exportMPIF: () => {
       const data = get().mpifData;
       if (!data) throw new Error('No data to export');
+      
+      // Validate before export
+      const validation = validateMPIFData(data);
+      set({ validation });
+      
+      if (!validation.isValid) {
+        throw new Error(`Cannot export: ${validation.errors.length} validation errors found. Please fix the incomplete fields first.`);
+      }
       
       return stringifyMPIF(data);
     },
@@ -281,6 +385,19 @@ export const useMPIFStore = create<MPIFStore>()(
           ...get().dashboard,
           hasUnsavedChanges: false,
           isEditing: false
+        }
+      });
+    },
+
+    clearUnsavedChanges: () => {
+      set({
+        dashboard: {
+          ...get().dashboard,
+          hasUnsavedChanges: false
+        },
+        fileState: {
+          ...get().fileState,
+          lastSaved: new Date()
         }
       });
     },
@@ -320,11 +437,13 @@ export const useMPIFStore = create<MPIFStore>()(
         
         if (savedData && timestamp) {
           const data = JSON.parse(savedData) as MPIFData;
-          const validation = validateMPIFData(data);
           
           set({
             mpifData: data,
-            validation,
+            validation: {
+              isValid: true,
+              errors: []
+            },
             fileState: {
               fileName: 'Autosaved Data',
               lastSaved: new Date(timestamp),
@@ -343,10 +462,3 @@ export const useMPIFStore = create<MPIFStore>()(
     }
   }))
 );
-
-// Initialize dark mode from localStorage
-const savedDarkMode = localStorage.getItem('mpif-dark-mode');
-if (savedDarkMode === 'true') {
-  document.documentElement.classList.add('dark');
-  useMPIFStore.getState().toggleDarkMode();
-} 

@@ -201,7 +201,7 @@ export interface DashboardState {
   currentSection: string;
   isEditing: boolean;
   hasUnsavedChanges: boolean;
-  darkMode: boolean;
+  columnLayout?: 'single' | 'double';
 }
 
 export interface FileState {

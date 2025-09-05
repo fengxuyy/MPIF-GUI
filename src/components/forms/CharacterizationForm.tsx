@@ -9,14 +9,16 @@ import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
 import { Controller } from 'react-hook-form';
+import { useMPIFStore } from '@/store/mpifStore';
 
 interface CharacterizationFormProps {
-  data?: Characterization;
+  data: Characterization;
   onSave: (data: Characterization) => void;
   onUnsavedChange: () => void;
 }
 
 export function CharacterizationForm({ data, onSave, onUnsavedChange }: CharacterizationFormProps) {
+  const { dashboard } = useMPIFStore();
   const [pxrdDataText, setPxrdDataText] = useState('');
   const [tgaDataText, setTgaDataText] = useState('');
   const [aifContent, setAifContent] = useState(data?.aif || '');
@@ -30,19 +32,59 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     control,
     formState: { errors, isDirty },
     getValues,
+    reset,
   } = useForm<Characterization>({
     defaultValues: data || {
       pxrd: undefined,
-      tga: undefined
+      tga: undefined,
+      aif: ''
     }
   });
 
-  // Watch for changes to trigger unsaved state
+  // Reset form when data changes
+  useEffect(() => {
+    reset(data);
+    setAifContent(data?.aif || '');
+    setAifFileName('');
+    setPxrdDataText('');
+    setTgaDataText('');
+  }, [data, reset]);
+
+  // Watch for changes to trigger unsaved state and auto-save
   const watchedFields = watch();
   const hasChanges = isDirty || aifContent !== (data?.aif || '');
-  if (hasChanges) {
-    onUnsavedChange();
-  }
+  useEffect(() => {
+    if (hasChanges) {
+      onUnsavedChange();
+      // Auto-save after a short delay
+      const timeoutId = setTimeout(() => {
+        const formData = getValues();
+        // Parse PXRD data if provided
+        if (pxrdDataText.trim()) {
+          const pxrdData = parsePXRDData(pxrdDataText);
+          formData.pxrd = {
+            ...(formData.pxrd || {}),
+            source: formData.pxrd?.source || 'Cu',
+            data: pxrdData
+          };
+        }
+        // Parse TGA data if provided
+        if (tgaDataText.trim()) {
+          const tgaData = parseTGAData(tgaDataText);
+          formData.tga = {
+            data: tgaData
+          };
+        }
+        // Include AIF content if provided
+        if (aifContent.trim()) {
+          formData.aif = aifContent;
+        }
+        onSave(formData);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [watchedFields, aifContent, data, onUnsavedChange, hasChanges, onSave, getValues, pxrdDataText, tgaDataText]);
 
   const parsePXRDData = (text: string): PXRDData['data'] => {
     try {
@@ -87,8 +129,8 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     if (pxrdDataText.trim()) {
       const pxrdData = parsePXRDData(pxrdDataText);
       formData.pxrd = {
-        source: (formData.pxrd?.source as any) || 'Cu',
-        wavelength: formData.pxrd?.wavelength,
+        ...(formData.pxrd || {}),
+        source: formData.pxrd?.source || 'Cu',
         data: pxrdData
       };
     }
@@ -109,20 +151,6 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     onSave(formData);
   };
 
-  useEffect(() => {
-    const handleBlur = () => {
-      if (hasChanges) {
-        handleSubmit(onSubmit)();
-      }
-    };
-
-    const formElement = document.querySelector('form');
-    formElement?.addEventListener('focusout', handleBlur);
-
-    return () => {
-      formElement?.removeEventListener('focusout', handleBlur);
-    };
-  }, [hasChanges, handleSubmit, onSubmit]);
 
   const handleAifFileLoad = (content: string, filename: string) => {
     setAifContent(content);
@@ -132,6 +160,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className={(dashboard as any).columnLayout === 'double' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'grid grid-cols-1 gap-6'}>
       {/* PXRD Data */}
       <Card>
         <CardHeader>
@@ -150,6 +179,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
                 render={({ field }) => (
                   <EditableSelect
                     {...field}
+                    value={field.value || ''}
                     options={['Cu', 'Cr', 'Fe', 'Co', 'Mo', 'Ag', 'synchrotron']}
                   />
                 )}
@@ -251,6 +281,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Data Preview */}
       {(pxrdDataText.trim() || tgaDataText.trim()) && (

@@ -6,20 +6,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MPIFMetadata } from '@/types/mpif';
 import { EditableSelect } from '../ui/EditableSelect';
 import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { useMPIFStore } from '@/store/mpifStore';
+
+interface ValidationError {
+  field: string;
+  message: string;
+  section: string;
+}
 
 interface MetadataFormProps {
   data?: MPIFMetadata;
   onSave: (data: MPIFMetadata) => void;
   onUnsavedChange: () => void;
+  errors?: ValidationError[];
 }
 
-export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProps) {
+export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: MetadataFormProps) {
+  const { dashboard } = useMPIFStore();
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isDirty },
+    formState: { errors: formErrors, isDirty },
     getValues,
+    reset,
   } = useForm<MPIFMetadata>({
     defaultValues: data || {
       dataName: '',
@@ -35,32 +46,36 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
     }
   });
 
-  // Watch for changes to trigger unsaved state
-  if (isDirty) {
-    onUnsavedChange();
-  }
+  // Helper function to check if a field has validation errors
+  const hasValidationError = (fieldName: string) => {
+    return errors.some(error => error.field === fieldName);
+  };
 
   const onSubmit = (formData: MPIFMetadata) => {
     onSave(formData);
   };
 
+  // Reset form when data changes
   useEffect(() => {
-    const handleBlur = () => {
-      if (isDirty) {
+    reset(data);
+  }, [data, reset]);
+
+  // Watch for changes to trigger unsaved state and auto-save
+  useEffect(() => {
+    if (isDirty) {
+      onUnsavedChange();
+      // Auto-save after a short delay
+      const timeoutId = setTimeout(() => {
         onSave(getValues());
-      }
-    };
-
-    const formElement = document.querySelector('form');
-    formElement?.addEventListener('focusout', handleBlur);
-
-    return () => {
-      formElement?.removeEventListener('focusout', handleBlur);
-    };
-  }, [isDirty, onSave, getValues]);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isDirty, onUnsavedChange, onSave, getValues]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
@@ -81,10 +96,10 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                     message: 'Only letters, numbers, underscores, and hyphens allowed'
                   }
                 })}
-                placeholder="e.g., MOF-5_synthesis_001"
+                className={cn(hasValidationError('dataName') && "border-red-500 ring-red-500")}
               />
-              {errors.dataName && (
-                <p className="text-sm text-red-600">{errors.dataName.message}</p>
+              {formErrors.dataName && (
+                <p className="text-sm text-red-600">{formErrors.dataName.message}</p>
               )}
             </div>
 
@@ -98,11 +113,12 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                   <EditableSelect
                     {...field}
                     options={['test', 'success', 'failure']}
+                    className={cn(hasValidationError('procedureStatus') && "border-red-500 ring-red-500")}
                   />
                 )}
               />
-              {errors.procedureStatus && (
-                <p className="text-sm text-red-600">{errors.procedureStatus.message}</p>
+              {formErrors.procedureStatus && (
+                <p className="text-sm text-red-600">{formErrors.procedureStatus.message}</p>
               )}
             </div>
 
@@ -112,9 +128,10 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                 id="creationDate"
                 type="date"
                 {...register('creationDate', { required: 'Creation date is required' })}
+                className={cn(hasValidationError('creationDate') && "border-red-500 ring-red-500")}
               />
-              {errors.creationDate && (
-                <p className="text-sm text-red-600">{errors.creationDate.message}</p>
+              {formErrors.creationDate && (
+                <p className="text-sm text-red-600">{formErrors.creationDate.message}</p>
               )}
             </div>
 
@@ -123,7 +140,6 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
               <Input
                 id="generatorVersion"
                 {...register('generatorVersion')}
-                placeholder="1.0.0"
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -136,10 +152,10 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                     message: 'Invalid DOI format (should start with 10.)'
                   }
                 })}
-                placeholder="10.1021/jacs.1234567"
+                className={cn(hasValidationError('publicationDOI') && "border-red-500 ring-red-500")}
               />
-              {errors.publicationDOI && (
-                <p className="text-sm text-red-600">{errors.publicationDOI.message}</p>
+              {formErrors.publicationDOI && (
+                <p className="text-sm text-red-600">{formErrors.publicationDOI.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 DOI of related publication if available
@@ -169,10 +185,10 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                     message: 'Name must be at least 2 characters'
                   }
                 })}
-                placeholder="Dr. Jane Smith"
+                className={cn(hasValidationError('name') && "border-red-500 ring-red-500")}
               />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
+              {formErrors.name && (
+                <p className="text-sm text-red-600">{formErrors.name.message}</p>
               )}
             </div>
 
@@ -188,10 +204,10 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                     message: 'Invalid email address'
                   }
                 })}
-                placeholder="jane.smith@university.edu"
+                className={cn(hasValidationError('email') && "border-red-500 ring-red-500")}
               />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
+              {formErrors.email && (
+                <p className="text-sm text-red-600">{formErrors.email.message}</p>
               )}
             </div>
 
@@ -206,10 +222,10 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                     message: 'ORCID format: 0000-0000-0000-0000'
                   }
                 })}
-                placeholder="0000-0000-0000-0000"
+                className={cn(hasValidationError('orcid') && "border-red-500 ring-red-500")}
               />
-              {errors.orcid && (
-                <p className="text-sm text-red-600">{errors.orcid.message}</p>
+              {formErrors.orcid && (
+                <p className="text-sm text-red-600">{formErrors.orcid.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Required for author identification
@@ -222,7 +238,6 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                 id="phone"
                 type="tel"
                 {...register('phone')}
-                placeholder="+1 (555) 123-4567"
               />
             </div>
 
@@ -232,14 +247,13 @@ export function MetadataForm({ data, onSave, onUnsavedChange }: MetadataFormProp
                 id="address"
                 {...register('address')}
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Department of Chemistry&#10;University of Science&#10;123 Research Blvd&#10;Science City, SC 12345, USA"
               />
             </div>
 
           </div>
         </CardContent>
       </Card>
-
+      </div>
     </form>
   );
 } 
