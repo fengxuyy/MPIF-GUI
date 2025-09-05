@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import IntroPage from './components/IntroPage';
@@ -7,10 +6,10 @@ import { useMPIFStore } from './store/mpifStore';
 function AppContent() {
   const navigate = useNavigate();
   const loadMPIFFile = useMPIFStore((state) => state.loadMPIFFile);
-  const createNewMPIF = useMPIFStore((state) => state.updateMPIFData);
+  const createNewMPIF = useMPIFStore((state) => state.createNewMPIF);
 
   const handleCreate = () => {
-    createNewMPIF({});
+    createNewMPIF();
     navigate('/dashboard');
   };
 

@@ -15,12 +15,10 @@ interface MPIFStore {
   // Actions
   loadMPIFFile: (content: string, fileName: string) => Promise<void>;
   createNewMPIF: () => void;
-  updateMPIFData: (data: Partial<MPIFData>) => void;
   updateSection: (section: keyof MPIFData, data: any) => void;
   
   // UI actions
   setCurrentSection: (section: string) => void;
-  setEditing: (isEditing: boolean) => void;
   setColumnLayout: (mode: 'single' | 'double') => void;
   
   // File actions
@@ -41,9 +39,9 @@ const createDefaultMPIFData = (): MPIFData => ({
   metadata: {
     dataName: '',
     creationDate: new Date().toISOString().split('T')[0],
-    generatorVersion: '1.0.0',
+    generatorVersion: '1.1',
     publicationDOI: '',
-    procedureStatus: '',
+    procedureStatus: 'test',
     name: '',
     email: '',
     orcid: '',
@@ -51,34 +49,34 @@ const createDefaultMPIFData = (): MPIFData => ({
     phone: ''
   },
   productInfo: {
-    type: '',
+    type: 'other',
     casNumber: '',
     ccdcNumber: '',
     commonName: '',
     systematicName: '',
     formula: '',
-    formulaWeight: undefined,
-    state: '',
+    formulaWeight: 0,
+    state: 'other',
     color: '',
-    handlingAtmosphere: '',
+    handlingAtmosphere: 'other',
     handlingNote: ''
   },
   synthesisGeneral: {
     performedDate: '',
-    labTemperature: undefined,
-    labHumidity: undefined,
-    reactionType: '',
-    reactionTemperature: undefined,
-    temperatureController: '',
-    reactionTime: undefined,
-    reactionTimeUnit: '',
-    reactionAtmosphere: '',
+    labTemperature: 0,
+    labHumidity: 0,
+    reactionType: 'other',
+    reactionTemperature: 0,
+    temperatureController: 'other',
+    reactionTime: 0,
+    reactionTimeUnit: 'h',
+    reactionAtmosphere: 'other',
     reactionContainer: '',
     reactionNote: '',
-    productAmount: undefined,
-    productAmountUnit: '',
-    productYield: undefined,
-    scale: '',
+    productAmount: 0,
+    productAmountUnit: 'g',
+    productYield: 0,
+    scale: 'milligram',
     safetyNote: ''
   },
   synthesisDetails: {
@@ -304,22 +302,6 @@ export const useMPIFStore = create<MPIFStore>()(
       });
     },
 
-    updateMPIFData: (data: Partial<MPIFData>) => {
-      const currentData = get().mpifData;
-      if (!currentData) {
-        const newData = { ...createDefaultMPIFData(), ...data };
-        set({
-          mpifData: newData,
-          dashboard: { ...get().dashboard, hasUnsavedChanges: true }
-        });
-      } else {
-        const updatedData = { ...currentData, ...data };
-        set({
-          mpifData: updatedData,
-          dashboard: { ...get().dashboard, hasUnsavedChanges: true }
-        });
-      }
-    },
 
     updateSection: (section: keyof MPIFData, data: any) => {
       const currentData = get().mpifData || createDefaultMPIFData();
@@ -340,11 +322,6 @@ export const useMPIFStore = create<MPIFStore>()(
       });
     },
 
-    setEditing: (isEditing: boolean) => {
-      set({
-        dashboard: { ...get().dashboard, isEditing }
-      });
-    },
 
     setColumnLayout: (mode: 'single' | 'double') => {
       set({
@@ -357,15 +334,24 @@ export const useMPIFStore = create<MPIFStore>()(
       const data = get().mpifData;
       if (!data) throw new Error('No data to export');
       
+      // Create a copy of the data and ensure generatorVersion is set to 1.0
+      const exportData = {
+        ...data,
+        metadata: {
+          ...data.metadata,
+          generatorVersion: '1.0'
+        }
+      };
+      
       // Validate before export
-      const validation = validateMPIFData(data);
+      const validation = validateMPIFData(exportData);
       set({ validation });
       
       if (!validation.isValid) {
         throw new Error(`Cannot export: ${validation.errors.length} validation errors found. Please fix the incomplete fields first.`);
       }
       
-      return stringifyMPIF(data);
+      return stringifyMPIF(exportData);
     },
 
     resetData: () => {

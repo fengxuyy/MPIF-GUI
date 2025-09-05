@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -11,9 +11,27 @@ import {
   AlertTriangle,
   Home,
   Database,
-  Columns
+  Columns,
+  ChevronDown,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { MetadataForm } from './forms/MetadataForm';
 import { ProductInfoForm } from './forms/ProductInfoForm';
@@ -63,6 +81,8 @@ const sidebarSections = [
 
 export function Dashboard({ className }: DashboardProps) {
   const navigate = useNavigate();
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFileName, setExportFileName] = useState('');
   const {
     mpifData,
     dashboard,
@@ -166,30 +186,47 @@ export function Dashboard({ className }: DashboardProps) {
     }
   };
 
+  const handleExportClick = () => {
+    const currentFileName = fileState.fileName || 'untitled';
+    // Remove .mpif extension if present for the input field
+    const fileNameWithoutExt = currentFileName.endsWith('.mpif') 
+      ? currentFileName.slice(0, -5) 
+      : currentFileName;
+    setExportFileName(fileNameWithoutExt);
+    setExportDialogOpen(true);
+  };
+
   const handleExport = () => {
     (document.activeElement as HTMLElement)?.blur();
     
     setTimeout(() => {
       try {
         const content = exportMPIF();
-        const exportFileName = fileState.fileName || 'untitled.mpif';
+        const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.mpif` : 'untitled.mpif';
         // Create download
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = exportFileName;
+        a.download = finalFileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         // Clear unsaved changes flag after successful export
         clearUnsavedChanges();
+        setExportDialogOpen(false);
       } catch (error) {
         console.error('Export failed:', error);
         // Optionally, update the store with an error message
       }
     }, 100); // Give a moment for the blur to trigger the save
+  };
+
+  const handleDocumentation = () => {
+    // Placeholder for documentation functionality
+    // This could open a help modal, navigate to docs, or open external documentation
+    console.log('Documentation clicked');
   };
 
 
@@ -294,28 +331,32 @@ export function Dashboard({ className }: DashboardProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
                  {/* Header */}
-         <div className="border-b bg-card px-3 md:px-4 py-3">
+         <div className="relative border-b bg-white/80 backdrop-blur-md px-6 py-4">
            <div className="flex items-center justify-between">
-             <div>
-               <h2 className="text-xl font-semibold flex items-center space-x-2">
-                 {currentSectionData && <currentSectionData.icon className="h-5 w-5" />}
-                 <span>{currentSectionData?.label || 'Dashboard'}</span>
-               </h2>
-               <p className="text-sm text-muted-foreground">
-                 {currentSectionData?.description || 'Select a section to begin editing'}
-               </p>
+             {/* Left Side - Logo/Brand */}
+             <div className="flex items-center space-x-3">
+               <div>
+                 <h2 className="text-xl font-semibold text-gray-800 flex items-center space-x-2">
+                   {currentSectionData && <currentSectionData.icon className="h-5 w-5" />}
+                   <span>{currentSectionData?.label || 'Dashboard'}</span>
+                 </h2>
+                 <p className="text-sm text-gray-600">
+                   {currentSectionData?.description || 'Select a section to begin editing'}
+                 </p>
+               </div>
              </div>
              
-             <div className="flex items-center space-x-4">
-               {/* File Status */}
-               <div className="flex items-center space-x-4 text-sm">
+             {/* Right Side - Navigation */}
+             <div className="flex items-center space-x-6">
+               {/* File Status - Moved to a more subtle position */}
+               <div className="flex items-center space-x-4 text-sm text-gray-600">
                  {fileState.fileName ? (
                    <div className="flex items-center space-x-2">
                      <FileText className="h-4 w-4 text-blue-600" />
                      <span className="font-medium">{fileState.fileName}</span>
                    </div>
                  ) : (
-                   <span className="text-slate-500">No file loaded</span>
+                   <span className="text-gray-500">No file loaded</span>
                  )}
                  
                  {dashboard.hasUnsavedChanges && (
@@ -333,41 +374,79 @@ export function Dashboard({ className }: DashboardProps) {
                  )}
                  
                  {fileState.lastSaved && (
-                   <span className="text-xs text-slate-500">
+                   <span className="text-xs text-gray-500">
                      Last saved: {fileState.lastSaved.toLocaleTimeString()}
                    </span>
                  )}
                </div>
 
-               {/* Action Buttons */}
-               <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
-                >
-                  <Columns className="h-4 w-4 mr-2" />
-                  {(dashboard as any).columnLayout === 'double' ? 'One-column' : 'Two-column'}
-                </Button>
+               {/* Navigation Items */}
+               <div className="flex items-center space-x-1">
+                 {/* Home Button */}
                  <Button 
+                   variant="ghost" 
                    size="sm" 
-                   variant="outline" 
-                   onClick={handleExport}
-                   disabled={!mpifData}
+                   onClick={handleGoHome}
+                   className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
                  >
-                   <Download className="h-4 w-4 mr-2" />
-                   Export
-                 </Button>
-                 <Button variant="outline" size="sm" onClick={handleGoHome}>
                    <Home className="h-4 w-4 mr-2" />
                    Home
                  </Button>
-                 <Button variant="outline" size="sm" onClick={handleUploadClick}>
-                   Upload File
-                 </Button>
-                 <Button size="sm" onClick={handleCreateNewMPIF}>
-                   <Upload className="h-4 w-4 mr-2" />
-                   Create MPIF
+
+                 {/* Actions Dropdown */}
+                 <DropdownMenu>
+                   <DropdownMenuTrigger asChild>
+                     <Button 
+                       variant="ghost" 
+                       size="sm"
+                       className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
+                     >
+                       Actions
+                       <ChevronDown className="h-4 w-4 ml-1" />
+                     </Button>
+                   </DropdownMenuTrigger>
+                   <DropdownMenuContent align="start" className="w-56 bg-white/95 backdrop-blur-md border border-gray-200/50 shadow-xl">
+                     <DropdownMenuItem 
+                       onClick={handleCreateNewMPIF}
+                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
+                     >
+                       <Upload className="h-4 w-4 mr-3" />
+                       Create New File
+                     </DropdownMenuItem>
+                     <DropdownMenuItem 
+                       onClick={handleExportClick}
+                       disabled={!mpifData}
+                       className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                       <Download className="h-4 w-4 mr-3" />
+                       Export
+                     </DropdownMenuItem>
+                     <DropdownMenuItem 
+                       onClick={handleUploadClick}
+                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
+                     >
+                       <Upload className="h-4 w-4 mr-3" />
+                       Upload File
+                     </DropdownMenuItem>
+                     <DropdownMenuItem 
+                       onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
+                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
+                     >
+                       <Columns className="h-4 w-4 mr-3" />
+                       Column Switch
+                     </DropdownMenuItem>
+                   </DropdownMenuContent>
+                 </DropdownMenu>
+
+                 {/* Documentation Button */}
+                 <Button 
+                   variant="ghost" 
+                   size="sm" 
+                   onClick={handleDocumentation}
+                   className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
+                 >
+                   <BookOpen className="h-4 w-4 mr-2" />
+                   Documentation
                  </Button>
                </div>
              </div>
@@ -380,6 +459,48 @@ export function Dashboard({ className }: DashboardProps) {
             {renderSectionForm()}
           </div>
         </div>
+
+        {/* Export Dialog */}
+        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Export File</DialogTitle>
+              <DialogDescription>
+                Enter a name for your MPIF file. The .mpif extension will be added automatically.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="filename" className="text-right">
+                  Filename
+                </Label>
+                <Input
+                  id="filename"
+                  value={exportFileName}
+                  onChange={(e) => setExportFileName(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Enter filename"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setExportDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExport}
+                disabled={!exportFileName.trim()}
+              >
+                Export
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <style>{`
           @keyframes blob {

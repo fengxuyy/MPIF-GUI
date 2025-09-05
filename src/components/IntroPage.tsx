@@ -68,10 +68,6 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
       <div className="relative flex flex-col items-center justify-center min-h-screen px-4">
         {/* Hero Section */}
         <div className="text-center mb-12 max-w-4xl">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mb-8 shadow-lg">
-            <Database className="w-10 h-10 text-white" />
-          </div>
-          
           <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-6">
             MPIF Studio
           </h1>

@@ -1,5 +1,4 @@
 import { useForm, Controller } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +34,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
     defaultValues: data || {
       dataName: '',
       creationDate: new Date().toISOString().split('T')[0],
-      generatorVersion: '1.0.0',
+      generatorVersion: '1.0',
       procedureStatus: 'test',
       publicationDOI: '',
       name: '',
@@ -135,13 +134,6 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="generatorVersion">Generator Version</Label>
-              <Input
-                id="generatorVersion"
-                {...register('generatorVersion')}
-              />
-            </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="publicationDOI">Publication DOI</Label>
               <Input
