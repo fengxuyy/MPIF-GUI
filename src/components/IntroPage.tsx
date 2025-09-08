@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Button } from './ui/button';
-import { Loader2, AlertCircle, Plus, Upload } from 'lucide-react';
+import { Loader2, AlertCircle, Plus, FileUp } from 'lucide-react';
 
 interface IntroPageProps {
   onCreate: () => void;
@@ -80,35 +79,37 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
         {/* Action Cards */}
         <div className="grid md:grid-cols-2 gap-8 mb-12 max-w-4xl w-full">
           {/* Upload Card */}
-          <div className="group relative">
+          <div 
+            className="group relative cursor-pointer"
+            onClick={uploadStatus === 'loading' ? undefined : handleUploadClick}
+          >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
             <div className="relative bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-200">
               <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-6">
-                <Upload className="w-8 h-8 text-blue-600" />
+                <FileUp className="w-8 h-8 text-blue-600" />
               </div>
               
               <h3 className="text-2xl font-bold text-slate-800 mb-4">
                 Upload Existing File
               </h3>
               
-              <p className="text-slate-600 mb-6 leading-relaxed h-12">
+              <p className="text-slate-600 mb-6 leading-relaxed">
                 Load and edit your existing MPIF files
+                {uploadStatus === 'loading' && (
+                  <span className="block mt-2 text-blue-600 font-medium">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                    Processing...
+                  </span>
+                )}
               </p>
-              
-              <Button 
-                onClick={handleUploadClick} 
-                size="lg" 
-                disabled={uploadStatus === 'loading'}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                {uploadStatus === 'loading' && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                {uploadStatus === 'loading' ? 'Processing...' : 'Choose File'}
-              </Button>
             </div>
           </div>
 
           {/* Create Card */}
-          <div className="group relative">
+          <div 
+            className="group relative cursor-pointer"
+            onClick={uploadStatus === 'loading' ? undefined : onCreate}
+          >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
             <div className="relative bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-200">
               <div className="flex items-center justify-center w-16 h-16 bg-purple-100 rounded-xl mb-6">
@@ -119,19 +120,9 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
                 Create New File
               </h3>
               
-              <p className="text-slate-600 mb-6 leading-relaxed h-12">
+              <p className="text-slate-600 mb-6 leading-relaxed">
                 Start fresh with a new MPIF file
               </p>
-              
-              <Button 
-                onClick={onCreate} 
-                variant="outline" 
-                size="lg" 
-                disabled={uploadStatus === 'loading'}
-                className="w-full border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                Start Creating
-              </Button>
             </div>
           </div>
         </div>

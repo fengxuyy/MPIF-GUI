@@ -32,21 +32,21 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
     reset,
   } = useForm<SynthesisGeneral>({
     defaultValues: data || {
-      performedDate: new Date().toISOString().split('T')[0],
-      labTemperature: 25,
-      labHumidity: 50,
-      reactionType: 'mix',
-      reactionTemperature: 25,
-      temperatureController: 'ambient',
-      reactionTime: 1,
-      reactionTimeUnit: 'h',
-      reactionAtmosphere: 'air',
+      performedDate: '',
+      labTemperature: undefined,
+      labHumidity: undefined,
+      reactionType: '',
+      reactionTemperature: undefined,
+      temperatureController: '',
+      reactionTime: undefined,
+      reactionTimeUnit: '',
+      reactionAtmosphere: '',
       reactionContainer: '',
       reactionNote: '',
       productAmount: undefined,
-      productAmountUnit: 'mg',
+      productAmountUnit: '',
       productYield: undefined,
-      scale: 'milligram',
+      scale: '',
       safetyNote: ''
     }
   });

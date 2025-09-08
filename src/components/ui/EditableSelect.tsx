@@ -3,18 +3,18 @@ import { Input } from '@/components/ui/input';
 
 interface EditableSelectProps {
   options: string[];
-  value: string;
+  value?: string;
   onChange: (value: string) => void;
   [key: string]: any; // Allow other props
 }
 
 export function EditableSelect({ options, value, onChange, ...props }: EditableSelectProps) {
-  const [inputValue, setInputValue] = useState(value);
+  const [inputValue, setInputValue] = useState(value || '');
   const [showOptions, setShowOptions] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setInputValue(value);
+    setInputValue(value || '');
   }, [value]);
 
   useEffect(() => {

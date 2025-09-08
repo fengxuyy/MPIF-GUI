@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SynthesisDetails } from '@/types/mpif';
 import { Plus, Trash2 } from 'lucide-react';
 import { EditableSelect } from '../ui/EditableSelect';
-import { useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import { useEffect, useRef, useCallback } from 'react';
+import { cn, isEqual } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
 
 interface ValidationError {
@@ -24,6 +24,8 @@ interface SynthesisDetailsFormProps {
 }
 
 export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [] }: SynthesisDetailsFormProps) {
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const lastSavedRef = useRef<SynthesisDetails>(data);
   const { dashboard } = useMPIFStore();
   const {
     register,
@@ -34,11 +36,11 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
     reset,
   } = useForm<SynthesisDetails>({
     defaultValues: data || {
-      substrates: [{ id: '1', name: '', amount: undefined, amountUnit: 'mg' }],
-      solvents: [{ id: '1', name: '', amount: undefined, amountUnit: 'mL' }],
-      vessels: [{ id: '1', volume: undefined, volumeUnit: 'mL', material: '', type: 'Vial', purpose: 'Reaction' }],
-      hardware: [{ id: '1', purpose: 'Heating/Cooling', generalName: '' }],
-      steps: [{ id: '1', type: 'Preparation', atmosphere: 'Air', detail: '' }],
+      substrates: [{ id: '1', name: '', amount: undefined, amountUnit: '' }],
+      solvents: [{ id: '1', name: '', amount: undefined, amountUnit: '' }],
+      vessels: [{ id: '1', volume: undefined, volumeUnit: '', material: '', type: '', purpose: '' }],
+      hardware: [{ id: '1', purpose: '', generalName: '' }],
+      steps: [{ id: '1', type: '', atmosphere: '', detail: '' }],
       procedureFull: ''
     }
   });
@@ -80,26 +82,52 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
     onSave(formData);
   };
 
-  // Reset form when data changes
+  // Track last saved data reference
   useEffect(() => {
-    reset(data);
-  }, [data, reset]);
+    lastSavedRef.current = data;
+  }, [data]);
 
-  // Watch for changes to trigger unsaved state and auto-save
+  // Reset form when incoming data meaningfully changes and the form is not focused
   useEffect(() => {
-    if (isDirty) {
-      onUnsavedChange();
-      // Auto-save after a short delay
-      const timeoutId = setTimeout(() => {
-        onSave(getValues());
-      }, 500);
-      
-      return () => clearTimeout(timeoutId);
+    const activeElement = document.activeElement as HTMLElement | null;
+    const formHasFocus = !!(formRef.current && activeElement && formRef.current.contains(activeElement));
+    const currentValues = getValues();
+
+    if (!isEqual(currentValues, data) && !formHasFocus) {
+      reset(data);
     }
-  }, [isDirty, onUnsavedChange, onSave, getValues]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, reset, getValues, isEqual]);
+
+  const saveIfChanged = useCallback(() => {
+    const current = getValues();
+    if (!isEqual(current, lastSavedRef.current)) {
+      onUnsavedChange();
+      onSave(current);
+    }
+  }, [getValues, isEqual, onSave, onUnsavedChange]);
+
+  // Debounced autosave only when form is not focused
+  useEffect(() => {
+    if (!isDirty) return;
+    const timeoutId = setTimeout(() => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      const formHasFocus = !!(formRef.current && activeElement && formRef.current.contains(activeElement));
+      if (!formHasFocus) {
+        saveIfChanged();
+      }
+    }, 600);
+    return () => clearTimeout(timeoutId);
+  }, [isDirty, saveIfChanged]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6" onBlurCapture={(e) => {
+      const related = e.relatedTarget as HTMLElement | null;
+      // If focus moved outside the form, attempt to save
+      if (formRef.current && (!related || !formRef.current.contains(related))) {
+        setTimeout(() => saveIfChanged(), 0);
+      }
+    }}>
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       {/* Substrates */}
       <Card>
@@ -109,7 +137,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendSubstrate({ id: Date.now().toString(), name: '', amount: 0, amountUnit: 'mg' })}
+              onClick={() => appendSubstrate({ id: Date.now().toString(), name: '', amount: undefined as any, amountUnit: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Substrate
@@ -262,7 +290,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendSolvent({ id: Date.now().toString(), name: '', amount: 0, amountUnit: 'mL' })}
+              onClick={() => appendSolvent({ id: Date.now().toString(), name: '', amount: undefined as any, amountUnit: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Solvent
@@ -414,11 +442,11 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
               size="sm"
               onClick={() => appendVessel({ 
                 id: `V${vesselFields.length + 1}`, 
-                volume: 0, 
-                volumeUnit: 'mL', 
+                volume: undefined as any, 
+                volumeUnit: '', 
                 material: '', 
-                type: 'Vial', 
-                purpose: 'Reaction' 
+                type: '', 
+                purpose: '' 
               })}
             >
               <Plus className="h-4 w-4 mr-1" />
@@ -541,7 +569,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendHardware({ id: `H${hardwareFields.length + 1}`, purpose: 'Heating/Cooling', generalName: '', productName: '', supplier: '', note: '' })}
+              onClick={() => appendHardware({ id: `H${hardwareFields.length + 1}`, purpose: '', generalName: '', productName: '', supplier: '', note: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Hardware
@@ -640,7 +668,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendStep({ id: Date.now().toString(), type: 'Preparation', atmosphere: 'Air', detail: '' })}
+              onClick={() => appendStep({ id: Date.now().toString(), type: '', atmosphere: '', detail: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Step

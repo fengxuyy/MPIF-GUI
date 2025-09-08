@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,8 +8,8 @@ import { useState, useEffect } from 'react';
 import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
-import { Controller } from 'react-hook-form';
 import { useMPIFStore } from '@/store/mpifStore';
+import { parsePXRDData, parseTGAData } from '@/utils/parsing';
 
 interface CharacterizationFormProps {
   data: Characterization;
@@ -53,78 +53,8 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
   // Watch for changes to trigger unsaved state and auto-save
   const watchedFields = watch();
   const hasChanges = isDirty || aifContent !== (data?.aif || '');
-  useEffect(() => {
-    if (hasChanges) {
-      onUnsavedChange();
-      // Auto-save after a short delay
-      const timeoutId = setTimeout(() => {
-        const formData = getValues();
-        // Parse PXRD data if provided
-        if (pxrdDataText.trim()) {
-          const pxrdData = parsePXRDData(pxrdDataText);
-          formData.pxrd = {
-            ...(formData.pxrd || {}),
-            source: formData.pxrd?.source || 'Cu',
-            data: pxrdData
-          };
-        }
-        // Parse TGA data if provided
-        if (tgaDataText.trim()) {
-          const tgaData = parseTGAData(tgaDataText);
-          formData.tga = {
-            data: tgaData
-          };
-        }
-        // Include AIF content if provided
-        if (aifContent.trim()) {
-          formData.aif = aifContent;
-        }
-        onSave(formData);
-      }, 500);
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [watchedFields, aifContent, data, onUnsavedChange, hasChanges, onSave, getValues, pxrdDataText, tgaDataText]);
 
-  const parsePXRDData = (text: string): PXRDData['data'] => {
-    try {
-      const lines = text.trim().split('\n');
-      const data: PXRDData['data'] = [];
-      
-      for (const line of lines) {
-        if (line.trim() === '') continue;
-        const [twoTheta, intensity] = line.split(/[\t,\s]+/).map(Number);
-        if (!isNaN(twoTheta) && !isNaN(intensity)) {
-          data.push({ twoTheta, intensity });
-        }
-      }
-      
-      return data;
-    } catch {
-      return [];
-    }
-  };
-
-  const parseTGAData = (text: string): TGAData['data'] => {
-    try {
-      const lines = text.trim().split('\n');
-      const data: TGAData['data'] = [];
-      
-      for (const line of lines) {
-        if (line.trim() === '') continue;
-        const [temperature, weightPercent] = line.split(/[\t,\s]+/).map(Number);
-        if (!isNaN(temperature) && !isNaN(weightPercent)) {
-          data.push({ temperature, weightPercent });
-        }
-      }
-      
-      return data;
-    } catch {
-      return [];
-    }
-  };
-
-  const onSubmit = (formData: Characterization) => {
+  const processData = (formData: Characterization) => {
     // Parse PXRD data if provided
     if (pxrdDataText.trim()) {
       const pxrdData = parsePXRDData(pxrdDataText);
@@ -148,7 +78,26 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       formData.aif = aifContent;
     }
 
-    onSave(formData);
+    return formData;
+  };
+
+  useEffect(() => {
+    if (hasChanges) {
+      onUnsavedChange();
+      // Auto-save after a short delay
+      const timeoutId = setTimeout(() => {
+        const formData = getValues();
+        const processedData = processData(formData);
+        onSave(processedData);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [watchedFields, aifContent, data, onUnsavedChange, hasChanges, onSave, getValues, pxrdDataText, tgaDataText]);
+
+  const onSubmit = (formData: Characterization) => {
+    const processedData = processData(formData);
+    onSave(processedData);
   };
 
 

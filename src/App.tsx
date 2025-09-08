@@ -3,7 +3,30 @@ import Dashboard from './components/Dashboard';
 import IntroPage from './components/IntroPage';
 import { useMPIFStore } from './store/mpifStore';
 
-function AppContent() {
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route 
+            path="/" 
+            element={<IntroPageWrapper />} 
+          />
+          <Route 
+            path="/dashboard" 
+            element={<Dashboard />} 
+          />
+          <Route 
+            path="*" 
+            element={<div className="flex items-center justify-center h-screen">Page Not Found</div>} 
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+function IntroPageWrapper() {
   const navigate = useNavigate();
   const loadMPIFFile = useMPIFStore((state) => state.loadMPIFFile);
   const createNewMPIF = useMPIFStore((state) => state.createNewMPIF);
@@ -18,32 +41,7 @@ function AppContent() {
     navigate('/dashboard');
   };
 
-  return (
-    <Routes>
-      <Route 
-        path="/" 
-        element={<IntroPage onCreate={handleCreate} onFileUpload={handleFileUploaded} />} 
-      />
-      <Route 
-        path="/dashboard" 
-        element={<Dashboard />} 
-      />
-      <Route 
-        path="*" 
-        element={<div className="flex items-center justify-center h-screen">Page Not Found</div>} 
-      />
-    </Routes>
-  );
-}
-
-function App() {
-  return (
-    <Router>
-      <div className="App">
-        <AppContent />
-      </div>
-    </Router>
-  );
+  return <IntroPage onCreate={handleCreate} onFileUpload={handleFileUploaded} />;
 }
 
 export default App; 

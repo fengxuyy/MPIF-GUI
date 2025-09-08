@@ -37,11 +37,11 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
     reset,
   } = useForm<ProductInfo>({
     defaultValues: data || {
-      type: 'porous framework material',
+      type: '',
       commonName: '',
-      state: 'solid',
+      state: '',
       color: '',
-      handlingAtmosphere: 'air',
+      handlingAtmosphere: '',
       casNumber: '',
       ccdcNumber: '',
       systematicName: '',

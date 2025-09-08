@@ -13,7 +13,9 @@ import {
   Database,
   Columns,
   ChevronDown,
-  BookOpen
+  BookOpen,
+  Plus,
+  FileUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -96,6 +98,13 @@ export function Dashboard({ className }: DashboardProps) {
     clearUnsavedChanges,
     setColumnLayout
   } = useMPIFStore();
+
+  // Redirect to home page if no MPIF data is loaded (on refresh)
+  useEffect(() => {
+    if (!mpifData) {
+      navigate('/');
+    }
+  }, [mpifData, navigate]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -224,9 +233,7 @@ export function Dashboard({ className }: DashboardProps) {
   };
 
   const handleDocumentation = () => {
-    // TODO: Implement documentation functionality
-    // This could open a help modal, navigate to docs, or open external documentation
-    window.open('https://github.com/your-repo/docs', '_blank');
+    window.open('https://github.com/fengxuyy/MSIF-GUI#', '_blank');
   };
 
 
@@ -410,8 +417,15 @@ export function Dashboard({ className }: DashboardProps) {
                        onClick={handleCreateNewMPIF}
                        className="text-gray-700 hover:bg-gray-50 cursor-pointer"
                      >
-                       <Upload className="h-4 w-4 mr-3" />
+                       <Plus className="h-4 w-4 mr-3" />
                        Create New File
+                     </DropdownMenuItem>
+                     <DropdownMenuItem 
+                       onClick={handleUploadClick}
+                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
+                     >
+                       <FileUp className="h-4 w-4 mr-3" />
+                       Upload File
                      </DropdownMenuItem>
                      <DropdownMenuItem 
                        onClick={handleExportClick}
@@ -420,13 +434,6 @@ export function Dashboard({ className }: DashboardProps) {
                      >
                        <Download className="h-4 w-4 mr-3" />
                        Export
-                     </DropdownMenuItem>
-                     <DropdownMenuItem 
-                       onClick={handleUploadClick}
-                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
-                     >
-                       <Upload className="h-4 w-4 mr-3" />
-                       Upload File
                      </DropdownMenuItem>
                      <DropdownMenuItem 
                        onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}

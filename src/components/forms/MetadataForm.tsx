@@ -35,7 +35,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
       dataName: '',
       creationDate: new Date().toISOString().split('T')[0],
       generatorVersion: '1.0',
-      procedureStatus: 'test',
+      procedureStatus: '',
       publicationDOI: '',
       name: '',
       email: '',

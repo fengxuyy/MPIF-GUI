@@ -13,7 +13,7 @@ export interface MPIFMetadata {
   creationDate: string;
   generatorVersion: string;
   publicationDOI?: string;
-  procedureStatus: 'test' | 'success' | 'failure';
+  procedureStatus: '' | 'test' | 'success' | 'failure';
   name: string;
   email: string;
   orcid: string;
@@ -22,36 +22,36 @@ export interface MPIFMetadata {
 }
 
 export interface ProductInfo {
-  type: 'porous framework material' | 'inorganic' | 'organic' | 'composite' | 'other';
+  type: '' | 'porous framework material' | 'inorganic' | 'organic' | 'composite' | 'other';
   casNumber?: string;
   ccdcNumber?: string;
   commonName: string;
   systematicName?: string;
   formula?: string;
-  formulaWeight?: number;
-  state: 'solid' | 'liquid' | 'gas' | 'suspension' | 'other';
+  formulaWeight?: number | undefined;
+  state: '' | 'solid' | 'liquid' | 'gas' | 'suspension' | 'other';
   color: string;
-  handlingAtmosphere: 'air' | 'inert' | 'water-free' | 'oxygen-free' | 'other';
+  handlingAtmosphere: '' | 'air' | 'inert' | 'water-free' | 'oxygen-free' | 'other';
   handlingNote?: string;
   cif?: string;
 }
 
 export interface SynthesisGeneral {
   performedDate: string;
-  labTemperature: number;
-  labHumidity: number;
-  reactionType: 'mix' | 'diffusion' | 'evaporation' | 'microwave' | 'mechanochemical' | 'electrochemical' | 'sonochemical' | 'photochemical' | 'flow' | 'other';
-  reactionTemperature: number;
-  temperatureController: 'ambient' | 'oven' | 'oil_bath' | 'water_bath' | 'dry_bath' | 'hot_plate' | 'microwave' | 'furnace' | 'other' | 'liquid_bath';
-  reactionTime: number;
-  reactionTimeUnit: 's' | 'min' | 'h' | 'days';
-  reactionAtmosphere: 'air' | 'dry' | 'inert' | 'vacuum' | 'other';
+  labTemperature: number | undefined;
+  labHumidity: number | undefined;
+  reactionType: '' | 'mix' | 'diffusion' | 'evaporation' | 'microwave' | 'mechanochemical' | 'electrochemical' | 'sonochemical' | 'photochemical' | 'flow' | 'other';
+  reactionTemperature: number | undefined;
+  temperatureController: '' | 'ambient' | 'oven' | 'oil_bath' | 'water_bath' | 'dry_bath' | 'hot_plate' | 'microwave' | 'furnace' | 'other' | 'liquid_bath';
+  reactionTime: number | undefined;
+  reactionTimeUnit: '' | 's' | 'min' | 'h' | 'days';
+  reactionAtmosphere: '' | 'air' | 'dry' | 'inert' | 'vacuum' | 'other';
   reactionContainer: string;
   reactionNote?: string;
-  productAmount: number;
-  productAmountUnit: 'mg' | 'g' | 'kg' | 'μL' | 'mL' | 'L';
+  productAmount: number | undefined;
+  productAmountUnit: '' | 'mg' | 'g' | 'kg' | 'μL' | 'mL' | 'L';
   productYield?: number;
-  scale: 'milligram' | 'gram' | 'multigram' | 'kilogram';
+  scale: '' | 'milligram' | 'gram' | 'multigram' | 'kilogram';
   safetyNote?: string;
   // Special reaction type parameters
   evaporationMethod?: 'ambient' | 'reduced_pressure' | 'spray_drying' | 'other';
@@ -84,7 +84,7 @@ export interface Substrate {
   name: string;
   molarity?: number;
   molarityUnit?: string;
-  amount: number;
+  amount: number | undefined;
   amountUnit: string;
   supplier?: string;
   purity?: number;
@@ -97,7 +97,7 @@ export interface Solvent {
   name: string;
   molarity?: number;
   molarityUnit?: string;
-  amount: number;
+  amount: number | undefined;
   amountUnit: string;
   supplier?: string;
   purity?: number;
@@ -107,18 +107,18 @@ export interface Solvent {
 
 export interface Vessel {
   id: string;
-  volume: number;
+  volume: number | undefined;
   volumeUnit: string;
   material: string;
-  type: 'Vial' | 'Jar' | 'Autoclave' | 'Beaker' | 'Flask' | 'Centrifuge-tube' | 'Other';
+  type: '' | 'Vial' | 'Jar' | 'Autoclave' | 'Beaker' | 'Flask' | 'Centrifuge-tube' | 'Other';
   supplier?: string;
-  purpose: 'Storing' | 'Reaction' | 'Other';
+  purpose: '' | 'Storing' | 'Reaction' | 'Other';
   note?: string;
 }
 
 export interface Hardware {
   id: string;
-  purpose: 'Heating/Cooling' | 'Atmosphere-control' | 'Stirring/Mixing' | 'Synthesis-devise' | 'Transferring' | 'Separation' | 'Drying' | 'Other';
+  purpose: '' | 'Heating/Cooling' | 'Atmosphere-control' | 'Stirring/Mixing' | 'Synthesis-devise' | 'Transferring' | 'Separation' | 'Drying' | 'Other';
   generalName: string;
   productName?: string;
   supplier?: string;
@@ -127,8 +127,8 @@ export interface Hardware {
 
 export interface ProcedureStep {
   id: string;
-  type: 'Preparation' | 'Reaction' | 'Work-up';
-  atmosphere: 'Air' | 'Dry' | 'Inert' | 'Vacuum' | 'Other';
+  type: '' | 'Preparation' | 'Reaction' | 'Work-up';
+  atmosphere: '' | 'Air' | 'Dry' | 'Inert' | 'Vacuum' | 'Other';
   detail: string;
 }
 
