@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import IntroPage from './components/IntroPage';
+import { MPIFDocumentation } from './components/MPIFDocumentation';
 import { useMPIFStore } from './store/mpifStore';
 
 function App() {
@@ -15,6 +16,10 @@ function App() {
           <Route 
             path="/dashboard" 
             element={<Dashboard />} 
+          />
+          <Route 
+            path="/documentation" 
+            element={<MPIFDocumentation />} 
           />
           <Route 
             path="*" 

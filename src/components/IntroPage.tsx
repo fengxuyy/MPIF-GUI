@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Loader2, AlertCircle, Plus, FileUp } from 'lucide-react';
+import { Loader2, AlertCircle, Plus, FileUp, Github } from 'lucide-react';
 
 interface IntroPageProps {
   onCreate: () => void;
@@ -56,6 +56,17 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
   return (
     <div {...getRootProps()} className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 focus:outline-none overflow-hidden">
       <input {...getInputProps()} />
+      
+      {/* GitHub Link */}
+      <a
+        href="https://github.com/fengxuyy/MSIF-GUI"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-6 right-6 z-10 p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 group"
+        title="View on GitHub"
+      >
+        <Github className="h-6 w-6 text-gray-700 group-hover:text-gray-900 transition-colors" />
+      </a>
       
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">

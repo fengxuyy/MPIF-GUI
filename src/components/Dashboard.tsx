@@ -231,10 +231,6 @@ export function Dashboard({ className }: DashboardProps) {
     }, 100); // Give a moment for the blur to trigger the save
   };
 
-  const handleDocumentation = () => {
-    window.open('https://github.com/fengxuyy/MSIF-GUI#', '_blank');
-  };
-
 
   const renderSectionForm = () => {
     if (!mpifData) return null;
@@ -330,6 +326,24 @@ export function Dashboard({ className }: DashboardProps) {
                 </button>
               );
             })}
+            
+            {/* Documentation Link */}
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => navigate('/documentation')}
+                className={cn(
+                  'w-full flex items-center px-3 py-3 rounded-lg text-left transition-all duration-300',
+                  'hover:bg-accent hover:text-accent-foreground text-gray-600',
+                  'group-hover:justify-start group-hover:items-start group-hover:space-x-3 justify-center'
+                )}
+              >
+                <BookOpen className="h-5 w-5 flex-shrink-0 transition-colors group-hover:mt-0.5" />
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                  <div className="font-medium text-sm whitespace-nowrap">Documentation</div>
+                  <div className="text-xs text-muted-foreground whitespace-nowrap">MPIF variable reference</div>
+                </div>
+              </button>
+            </div>
           </nav>
         </div>
         </div>
@@ -395,7 +409,6 @@ export function Dashboard({ className }: DashboardProps) {
                    onClick={handleGoHome}
                    className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
                  >
-                   <Home className="h-4 w-4 mr-2" />
                    Home
                  </Button>
 
@@ -448,10 +461,9 @@ export function Dashboard({ className }: DashboardProps) {
                  <Button 
                    variant="ghost" 
                    size="sm" 
-                   onClick={handleDocumentation}
+                   onClick={() => window.open('/documentation', '_blank')}
                    className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
                  >
-                   <BookOpen className="h-4 w-4 mr-2" />
                    Documentation
                  </Button>
                </div>
