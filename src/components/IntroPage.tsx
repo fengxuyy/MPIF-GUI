@@ -69,7 +69,7 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
         {/* Hero Section */}
         <div className="text-center mb-12 max-w-4xl">
           <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-6">
-            MPIF Studio
+            MPIF Dashboard
           </h1>
           
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
