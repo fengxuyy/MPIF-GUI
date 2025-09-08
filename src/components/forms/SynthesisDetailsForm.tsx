@@ -702,8 +702,8 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   {...register(`steps.${index}.detail`, { required: 'Details are required' })}
                   className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
-                {errors.steps?.[index]?.detail && (
-                  <p className="text-sm text-red-600">{errors.steps[index]?.detail?.message}</p>
+                {formErrors.steps?.[index]?.detail && (
+                  <p className="text-sm text-red-600">{formErrors.steps[index]?.detail?.message}</p>
                 )}
               </div>
             </div>
