@@ -55,7 +55,7 @@ export function DataVisualization({ pxrdData, tgaData }: DataVisualizationProps)
                     label={{ value: 'Intensity', angle: -90, position: 'insideLeft' }}
                   />
                   <Tooltip 
-                    formatter={(value, name) => [value, 'Intensity']}
+                    formatter={(value) => [value, 'Intensity']}
                     labelFormatter={(value) => `2θ: ${value}°`}
                   />
                   <Line 
@@ -120,7 +120,7 @@ export function DataVisualization({ pxrdData, tgaData }: DataVisualizationProps)
                     domain={['dataMin - 5', 'dataMax + 5']}
                   />
                   <Tooltip 
-                    formatter={(value, name) => [`${value}%`, 'Weight']}
+                    formatter={(value) => [`${value}%`, 'Weight']}
                     labelFormatter={(value) => `Temperature: ${value}°C`}
                   />
                   <Line 

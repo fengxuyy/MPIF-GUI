@@ -7,7 +7,6 @@ import {
   Beaker,
   Settings, 
   Download,
-  Upload,
   AlertTriangle,
   Home,
   Database,

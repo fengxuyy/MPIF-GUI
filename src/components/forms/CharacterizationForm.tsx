@@ -1,9 +1,8 @@
 import { useForm, Controller } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Characterization, PXRDData, TGAData } from '@/types/mpif';
+import { Characterization } from '@/types/mpif';
 import { useState, useEffect } from 'react';
 import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
@@ -28,7 +27,6 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     register,
     handleSubmit,
     watch,
-    setValue,
     control,
     formState: { errors, isDirty },
     getValues,

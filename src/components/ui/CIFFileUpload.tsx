@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Upload, File, CheckCircle, XCircle, Loader2, Atom } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Atom } from 'lucide-react';
 
 interface CIFFileUploadProps {
   onFileLoad?: (content: string, filename: string) => void;

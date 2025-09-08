@@ -114,13 +114,13 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   }
 
   // Validate synthesis general
-  if (data.synthesisGeneral.labTemperature <= -273.15) {
+  if (data.synthesisGeneral.labTemperature !== undefined && data.synthesisGeneral.labTemperature <= -273.15) {
     errors.push({ field: 'labTemperature', message: 'Temperature must be above absolute zero', section: 'synthesisGeneral' });
   }
-  if (data.synthesisGeneral.labHumidity < 0 || data.synthesisGeneral.labHumidity > 100) {
+  if (data.synthesisGeneral.labHumidity !== undefined && (data.synthesisGeneral.labHumidity < 0 || data.synthesisGeneral.labHumidity > 100)) {
     errors.push({ field: 'labHumidity', message: 'Humidity must be between 0 and 100%', section: 'synthesisGeneral' });
   }
-  if (data.synthesisGeneral.reactionTime <= 0) {
+  if (data.synthesisGeneral.reactionTime !== undefined && data.synthesisGeneral.reactionTime <= 0) {
     errors.push({ field: 'reactionTime', message: 'Reaction time must be positive', section: 'synthesisGeneral' });
   }
   // Product amount is optional - no validation needed
