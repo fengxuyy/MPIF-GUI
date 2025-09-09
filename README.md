@@ -1,4 +1,4 @@
-# MSIF-GUI (MPIF Dashboard)
+# MPIF Dashboard
 
 A modern web application for managing and visualizing MPIF (Materials Property Information Format) data. This application provides an intuitive interface for data entry, file upload, and visualization of materials characterization data.
 
