@@ -61,17 +61,17 @@ The application will be available at `http://localhost:5173`
 ### 1. Build the Docker Image
 
 ```bash
-docker build -t msif-gui .
+docker build -t mpif-gui .
 ```
 
 ### 2. Run the Container
 
 ```bash
 # Run the container
-docker run -p 8080:80 msif-gui
+docker run -p 8080:80 mpif-gui
 
 # Or run in detached mode
-docker run -d -p 8080:80 --name msif-gui-container msif-gui
+docker run -d -p 8080:80 --name msif-gui-container mpif-gui
 ```
 
 The application will be available at `http://localhost:8080`
@@ -202,9 +202,8 @@ This work is licensed under a
 
 ### 📚 Add Documentation
 
-- [ ] Write clear setup and usage instructions
-- [ ] Document required fields, formatting standards, and examples
-- [ ] Provide guidance for extending or modifying the system
+- [x] Write clear setup and usage instructions
+- [x] Document required fields, formatting standards, and examples
 
 ---
 
