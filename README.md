@@ -24,7 +24,7 @@ A modern web application for managing and visualizing MPIF (Materials Property I
 
 ```bash
 git clone <repository-url>
-cd MSIF-GUI
+cd MPIF-GUI
 ```
 
 ### 2. Install Dependencies
