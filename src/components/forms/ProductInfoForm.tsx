@@ -24,7 +24,14 @@ interface ProductInfoFormProps {
 
 export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: ProductInfoFormProps) {
   const { dashboard } = useMPIFStore();
-  const [cifContent, setCifContent] = useState(data?.cif || '');
+  // Convert structured CIF to string for display
+  const getCifString = (cif: any) => {
+    if (!cif) return '';
+    if (typeof cif === 'string') return cif;
+    // If it's structured, keep it as-is (we'll just show "[Structured CIF Data]")
+    return '[Structured CIF Data]';
+  };
+  const [cifContent, setCifContent] = useState(getCifString(data?.cif));
   const [cifFileName, setCifFileName] = useState('');
 
   const {
@@ -57,8 +64,12 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
 
   const onSubmit = (formData: ProductInfo) => {
     // Include CIF content if provided
-    if (cifContent.trim()) {
+    const cifStr = typeof cifContent === 'string' ? cifContent.trim() : '';
+    if (cifStr && cifStr !== '[Structured CIF Data]') {
       formData.cif = cifContent;
+    } else if (data?.cif && typeof data.cif !== 'string') {
+      // Keep structured CIF if it exists
+      formData.cif = data.cif;
     }
     onSave(formData);
   };
@@ -66,20 +77,24 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
   // Reset form when data changes
   useEffect(() => {
     reset(data);
-    setCifContent(data?.cif || '');
+    setCifContent(getCifString(data?.cif));
     setCifFileName('');
   }, [data, reset]);
 
   // Watch for changes to trigger unsaved state and auto-save
-  const hasChanges = isDirty || cifContent !== (data?.cif || '');
+  const hasChanges = isDirty || cifContent !== getCifString(data?.cif);
   useEffect(() => {
     if (hasChanges) {
       onUnsavedChange();
       // Auto-save after a short delay
       const timeoutId = setTimeout(() => {
         const formData = getValues();
-        if (cifContent.trim()) {
+        const cifStr = typeof cifContent === 'string' ? cifContent.trim() : '';
+        if (cifStr && cifStr !== '[Structured CIF Data]') {
           formData.cif = cifContent;
+        } else if (data?.cif && typeof data.cif !== 'string') {
+          // Keep structured CIF if it exists
+          formData.cif = data.cif;
         }
         onSave(formData);
       }, 500);
@@ -292,13 +307,21 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
             {cifContent && (
               <div className="bg-muted/50 p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">Structure Preview:</p>
-                <p className="text-xs font-mono text-muted-foreground">
-                  {cifContent.split('\n').slice(0, 5).join('\n')}
-                  {cifContent.split('\n').length > 5 && '\n...'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {cifContent.split('\n').length} lines, {cifContent.length} characters
-                </p>
+                {typeof cifContent === 'string' ? (
+                  <>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {cifContent.split('\n').slice(0, 5).join('\n')}
+                      {cifContent.split('\n').length > 5 && '\n...'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {cifContent.split('\n').length} lines, {cifContent.length} characters
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Structured CIF data loaded
+                  </p>
+                )}
               </div>
             )}
           </div>

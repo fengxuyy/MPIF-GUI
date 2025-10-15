@@ -18,9 +18,16 @@ interface CharacterizationFormProps {
 
 export function CharacterizationForm({ data, onSave, onUnsavedChange }: CharacterizationFormProps) {
   const { dashboard } = useMPIFStore();
+  // Convert structured AIF to string for display
+  const getAifString = (aif: any) => {
+    if (!aif) return '';
+    if (typeof aif === 'string') return aif;
+    // If it's structured, keep it as-is (we'll just show "[Structured AIF Data]")
+    return '[Structured AIF Data]';
+  };
   const [pxrdDataText, setPxrdDataText] = useState('');
   const [tgaDataText, setTgaDataText] = useState('');
-  const [aifContent, setAifContent] = useState(data?.aif || '');
+  const [aifContent, setAifContent] = useState(getAifString(data?.aif));
   const [aifFileName, setAifFileName] = useState('');
 
   const {
@@ -42,7 +49,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
   // Reset form when data changes
   useEffect(() => {
     reset(data);
-    setAifContent(data?.aif || '');
+    setAifContent(getAifString(data?.aif));
     setAifFileName('');
     setPxrdDataText('');
     setTgaDataText('');
@@ -50,7 +57,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
 
   // Watch for changes to trigger unsaved state and auto-save
   const watchedFields = watch();
-  const hasChanges = isDirty || aifContent !== (data?.aif || '');
+  const hasChanges = isDirty || aifContent !== getAifString(data?.aif);
 
   const processData = (formData: Characterization) => {
     // Parse PXRD data if provided
@@ -72,8 +79,12 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     }
 
     // Include AIF content if provided
-    if (aifContent.trim()) {
+    const aifStr = typeof aifContent === 'string' ? aifContent.trim() : '';
+    if (aifStr && aifStr !== '[Structured AIF Data]') {
       formData.aif = aifContent;
+    } else if (data?.aif && typeof data.aif !== 'string') {
+      // Keep structured AIF if it exists
+      formData.aif = data.aif;
     }
 
     return formData;
@@ -216,13 +227,21 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
             {aifContent && (
               <div className="bg-muted/50 p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">File Content Preview:</p>
-                <p className="text-xs font-mono text-muted-foreground">
-                  {aifContent.split('\n').slice(0, 3).join('\n')}
-                  {aifContent.split('\n').length > 3 && '\n...'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {aifContent.split('\n').length} lines, {aifContent.length} characters
-                </p>
+                {typeof aifContent === 'string' ? (
+                  <>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {aifContent.split('\n').slice(0, 3).join('\n')}
+                      {aifContent.split('\n').length > 3 && '\n...'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {aifContent.split('\n').length} lines, {aifContent.length} characters
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Structured AIF data loaded
+                  </p>
+                )}
               </div>
             )}
           </div>

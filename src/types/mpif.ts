@@ -21,6 +21,15 @@ export interface MPIFMetadata {
   phone?: string;
 }
 
+export interface CIFData {
+  dataName: string;
+  properties: { [key: string]: string };
+  loops: Array<{
+    headers: string[];
+    data: string[][];
+  }>;
+}
+
 export interface ProductInfo {
   type: '' | 'porous framework material' | 'inorganic' | 'organic' | 'composite' | 'other';
   casNumber?: string;
@@ -33,7 +42,7 @@ export interface ProductInfo {
   color: string;
   handlingAtmosphere: '' | 'air' | 'inert' | 'water-free' | 'oxygen-free' | 'other';
   handlingNote?: string;
-  cif?: string;
+  cif?: CIFData | string; // Support both structured and string format
 }
 
 export interface SynthesisGeneral {
@@ -132,12 +141,25 @@ export interface ProcedureStep {
   detail: string;
 }
 
+export interface AIFData {
+  dataName: string;
+  properties: { [key: string]: string };
+  adsorptionData: Array<{
+    pressure: number;
+    loading: number;
+  }>;
+  desorptionData?: Array<{
+    pressure: number;
+    loading: number;
+  }>;
+}
+
 export interface Characterization {
   pxrd?: PXRDData;
   tga?: TGAData;
   adsorption?: AdsorptionData;
   desorption?: DesorptionData;
-  aif?: string;
+  aif?: AIFData | string; // Support both structured and string format
 }
 
 export interface PXRDData {

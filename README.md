@@ -191,7 +191,7 @@ This work is licensed under a
 ### 🗄️ Build Database Layer
 
 - [ ] Design a database schema to store parsed outputs
-- [ ] Support saving in both JSON format and SQL tables
+- [x] Support saving in both JSON format
 - [ ] Ensure compatibility for retrieval, editing, and exporting into required file formats
 
 ### ✅ Confirm Data Standards

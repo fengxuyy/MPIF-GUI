@@ -1,0 +1,219 @@
+data_Example-Mat-1_20231027_John-Doe
+_mpif_audit_creation_date	2023-10-27
+_mpif_audit_generator_version	1.0
+_mpif_audit_publication_doi	''
+_mpif_audit_procedure_status	'success'
+
+#Section 1: Author details
+_mpif_audit_contact_author_name	'John Doe'
+_mpif_audit_contact_author_email	john.doe@example.com
+_mpif_audit_contact_author_id_orcid	0000-0000-0000-0000
+_mpif_audit_contact_author_address	'Example University, 123 University St, Example City'
+_mpif_audit_contact_author_phone	?
+
+#Section 2: Product General Information
+_mpif_product_type	'porous framework material'
+_mpif_product_cas	?
+_mpif_product_ccdc	'1234567'
+_mpif_product_name_common	'Example-Mat-1'
+_mpif_product_name_systematic	''
+_mpif_product_formula	'C10H8N2O2'
+_mpif_product_formula_weight	188.18
+_mpif_product_state	'solid'
+_mpif_product_color	'#A1B2C3'
+_mpif_product_handling_atmosphere	'air'
+_mpif_product_handling_note
+;
+This is a sample material and is stable in air.
+Sounds good
+;
+_mpif_product_cif
+;
+data_Ac
+_symmetry_space_group_name_H-M   'P 1'
+_cell_length_a   4.04604077
+_cell_length_b   4.04604077
+_cell_length_c   13.01703648
+_cell_angle_alpha   90.00000000
+_cell_angle_beta   90.00000000
+_cell_angle_gamma   120.00000000
+_symmetry_Int_Tables_number   1
+_chemical_formula_structural   Ac
+_chemical_formula_sum   Ac4
+_cell_volume   184.54541612
+_cell_formula_units_Z   4
+loop_
+ _symmetry_equiv_pos_site_id
+ _symmetry_equiv_pos_as_xyz
+  1  'x, y, z'
+
+loop_
+ _atom_type_symbol
+ _atom_type_oxidation_number
+  Ac0+  0.0
+
+loop_
+ _atom_site_type_symbol
+ _atom_site_label
+ _atom_site_symmetry_multiplicity
+ _atom_site_fract_x
+ _atom_site_fract_y
+ _atom_site_fract_z
+ _atom_site_occupancy
+  Ac0+  Ac0  1  0.00000000  0.00000000  0.00000000  1
+  Ac0+  Ac1  1  0.33333333  0.66666667  0.25000000  1
+  Ac0+  Ac2  1  0.00000000  0.00000000  0.50000000  1
+  Ac0+  Ac3  1  0.66666667  0.33333333  0.75000000  1
+
+;
+
+#Section 3: Synthesis General Information
+_mpif_synthesis_performed_date	2023-10-26
+_mpif_synthesis_lab_temperature_C	22
+_mpif_synthesis_lab_humidity_percent	45
+_mpif_synthesis_type	'mix'
+_mpif_synthesis_react_temperature_C	80
+_mpif_synthesis_react_temperature_controller	'oven'
+_mpif_synthesis_react_time	24
+_mpif_synthesis_react_time_unit	'h'
+_mpif_synthesis_react_atmosphere	'air'
+_mpif_synthesis_react_container	'glass vial'
+_mpif_synthesis_react_note
+;
+This is a sample reaction note.
+;
+_mpif_synthesis_product_amount	50
+_mpif_synthesis_product_amount_unit	'mg'
+_mpif_synthesis_product_yield_percent	90
+_mpif_synthesis_scale	'milligram'
+_mpif_synthesis_safety_note
+;
+Standard lab safety procedures should be followed.
+;
+
+#Section 4: Synthesis Procedure Details
+_mpif_substrate_number	2
+loop_
+_mpif_substrate_id
+_mpif_substrate_name
+_mpif_substrate_molarity
+_mpif_substrate_molarity_unit
+_mpif_substrate_amount
+_mpif_substrate_amount_unit
+_mpif_substrate_supplier
+_mpif_substrate_purity_percent
+_mpif_substrate_cas
+_mpif_substrate_smiles
+R1	Substance-A	1	mmol	10	mg	ExampleChem	99	123-45-6	?
+R2	Substance-B	2	mmol	20	mg	ExampleChem	98	789-01-2	?
+
+_mpif_solvent_number	1
+loop_
+_mpif_solvent_id
+_mpif_solvent_name
+_mpif_solvent_molarity
+_mpif_solvent_molarity_unit
+_mpif_solvent_amount
+_mpif_solvent_amount_unit
+_mpif_solvent_supplier
+_mpif_solvent_purity_percent
+_mpif_solvent_cas
+_mpif_solvent_smiles
+S1	Solvent-X			100	mL	ExampleChem	99.5	321-65-4	?
+
+_mpif_vessel_number	1
+loop_
+_mpif_vessel_id
+_mpif_vessel_volume
+_mpif_vessel_volume_unit
+_mpif_vessel_material
+_mpif_vessel_type
+_mpif_vessel_supplier
+_mpif_vessel_purpose
+_mpif_vessel_note
+V1	20	mL	glass	Vial	-	Reaction	-
+
+_mpif_hardware_number	1
+loop_
+_mpif_hardware_id
+_mpif_hardware_purpose
+_mpif_hardware_general_name
+_mpif_hardware_product_name
+_mpif_hardware_supplier
+_mpif_hardware_note
+H1	Heating/Cooling	Oven	Model-T	ExampleInc	-
+
+_mpif_procedure_number	3
+loop_
+_mpif_procedure_id
+_mpif_procedure_type
+_mpif_procedure_atmosphere
+_mpif_procedure_detail
+P1	Preparation	Air	Mix R1 and R2 in S1.
+P2	Reaction	Air	Heat mixture in V1 using H1 for 24h.
+P3	Work-up	Air	Cool down and filter the product.
+
+_mpif_procedure_full
+;
+1. Add Substance-A (10 mg) and Substance-B (20 mg) to a 20 mL vial (V1).
+2. Add 100 mL of Solvent-X and stir.
+3. Place the vial in an oven (H1) at 80°C for 24 hours.
+4. After cooling to room temperature, filter the solid product and wash with Solvent-X.
+5. Dry the product under vacuum.
+;
+
+#Characterization Information
+
+_mpif_pxrd_data
+;
+_mpif_pxrd_source	'Cu'
+_mpif_pxrd_lambda	1.54056
+loop_
+_pxrd_2theta
+_pxrd_intensity
+5.0	1000.0
+10.0	5000.0
+15.0	3000.0
+20.0	8000.0
+25.0	6000.0
+;
+
+_mpif_tga_data
+;
+loop_
+_tga_temperature_celcius
+_tga_weight_percent
+25.0	100.0
+100.0	99.8
+200.0	99.5
+300.0	98.0
+400.0	85.0
+500.0	60.0
+600.0	10.0
+;
+
+_mpif_aif
+;
+data_sample_adsorption
+
+_sample_id           MOF-5_test
+_material_id           ZIF-8
+_temperature_K           77
+_pressure_units           bar
+_loading_units           mmol/g
+
+loop_
+_adsorp_pressure
+_adsorp_loading
+0.001    0.5
+0.01    2.1
+0.1    5.8
+0.5    12.3
+1.0    18.5
+2.0    22.1
+5.0    25.6
+10.0    26.8
+15.0    27.2
+20.0    27.4
+
+;

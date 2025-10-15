@@ -8,7 +8,6 @@ import {
   Settings, 
   Download,
   AlertTriangle,
-  Home,
   Database,
   Columns,
   ChevronDown,
@@ -84,6 +83,7 @@ export function Dashboard({ className }: DashboardProps) {
   const navigate = useNavigate();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFileName, setExportFileName] = useState('');
+  const [exportFormat, setExportFormat] = useState<'mpif' | 'json'>('mpif');
   const {
     mpifData,
     dashboard,
@@ -201,6 +201,16 @@ export function Dashboard({ className }: DashboardProps) {
       ? currentFileName.slice(0, -5) 
       : currentFileName;
     setExportFileName(fileNameWithoutExt);
+    setExportFormat('mpif');
+    setExportDialogOpen(true);
+  };
+
+  const handleExportJSONClick = () => {
+    const currentFileName = fileState.fileName || 'untitled';
+    // Remove extensions if present for the input field
+    const fileNameWithoutExt = currentFileName.replace(/\.(mpif|json)$/, '');
+    setExportFileName(fileNameWithoutExt);
+    setExportFormat('json');
     setExportDialogOpen(true);
   };
 
@@ -209,18 +219,38 @@ export function Dashboard({ className }: DashboardProps) {
     
     setTimeout(() => {
       try {
-        const content = exportMPIF();
-        const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.mpif` : 'untitled.mpif';
-        // Create download
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = finalFileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (exportFormat === 'json') {
+          // Export as backend-compatible JSON
+          if (!mpifData) throw new Error('No data to export');
+          
+          const jsonContent = JSON.stringify(mpifData, null, 2);
+          const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.json` : 'untitled.json';
+          
+          const blob = new Blob([jsonContent], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = finalFileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else {
+          // Export as MPIF
+          const content = exportMPIF();
+          const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.mpif` : 'untitled.mpif';
+          
+          const blob = new Blob([content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = finalFileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+        
         // Clear unsaved changes flag after successful export
         clearUnsavedChanges();
         setExportDialogOpen(false);
@@ -439,21 +469,29 @@ export function Dashboard({ className }: DashboardProps) {
                        <FileUp className="h-4 w-4 mr-3" />
                        Upload File
                      </DropdownMenuItem>
-                     <DropdownMenuItem 
-                       onClick={handleExportClick}
-                       disabled={!mpifData}
-                       className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                     >
-                       <Download className="h-4 w-4 mr-3" />
-                       Export
-                     </DropdownMenuItem>
-                     <DropdownMenuItem 
-                       onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
-                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
-                     >
-                       <Columns className="h-4 w-4 mr-3" />
-                       Column Switch
-                     </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleExportClick}
+                      disabled={!mpifData}
+                      className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Download className="h-4 w-4 mr-3" />
+                      Export MPIF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleExportJSONClick}
+                      disabled={!mpifData}
+                      className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Download className="h-4 w-4 mr-3" />
+                      Export Backend JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
+                      className="text-gray-700 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <Columns className="h-4 w-4 mr-3" />
+                      Column Switch
+                    </DropdownMenuItem>
                    </DropdownMenuContent>
                  </DropdownMenu>
 
@@ -482,9 +520,13 @@ export function Dashboard({ className }: DashboardProps) {
         <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Export File</DialogTitle>
+              <DialogTitle>
+                {exportFormat === 'json' ? 'Export Backend JSON' : 'Export MPIF File'}
+              </DialogTitle>
               <DialogDescription>
-                Enter a name for your MPIF file. The .mpif extension will be added automatically.
+                {exportFormat === 'json' 
+                  ? 'Enter a filename for your JSON export (compatible with Python backend)'
+                  : 'Enter a name for your MPIF file. The .mpif extension will be added automatically.'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -496,8 +538,14 @@ export function Dashboard({ className }: DashboardProps) {
                   id="filename"
                   value={exportFileName}
                   onChange={(e) => setExportFileName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && exportFileName.trim()) {
+                      handleExport();
+                    }
+                  }}
                   className="col-span-3"
                   placeholder="Enter filename"
+                  autoFocus
                 />
               </div>
             </div>
@@ -514,7 +562,7 @@ export function Dashboard({ className }: DashboardProps) {
                 onClick={handleExport}
                 disabled={!exportFileName.trim()}
               >
-                Export
+                Export {exportFormat === 'json' ? '.json' : '.mpif'}
               </Button>
             </DialogFooter>
           </DialogContent>

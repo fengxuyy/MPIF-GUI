@@ -75,7 +75,10 @@ export class MPIFParser {
     
     // Add CIF data if available
     if (data.productInfo.cif) {
-      result += `_mpif_product_cif\n;\n${data.productInfo.cif}\n;\n`;
+      const cifString = typeof data.productInfo.cif === 'string' 
+        ? data.productInfo.cif 
+        : this.reconstructCifFromDict(data.productInfo.cif);
+      result += `_mpif_product_cif\n;\n${cifString}\n;\n`;
     }
     result += '\n';
 
@@ -220,11 +223,75 @@ export class MPIFParser {
       }
 
       if (data.characterization.aif) {
-        result += `_mpif_aif\n;\n${data.characterization.aif}\n;\n`;
+        const aifString = typeof data.characterization.aif === 'string'
+          ? data.characterization.aif
+          : this.reconstructAifFromDict(data.characterization.aif);
+        result += `_mpif_aif\n;\n${aifString}\n;\n`;
       }
     }
 
     return result;
+  }
+
+  private reconstructCifFromDict(cifDict: any): string {
+    let result = '';
+    
+    if (cifDict.dataName) {
+      result += `data_${cifDict.dataName}\n`;
+    }
+    
+    // Add properties
+    for (const [key, value] of Object.entries(cifDict.properties || {})) {
+      result += `${key}   ${value}\n`;
+    }
+    
+    // Add loops
+    for (const loop of cifDict.loops || []) {
+      result += 'loop_\n';
+      for (const header of loop.headers) {
+        result += ` ${header}\n`;
+      }
+      for (const row of loop.data) {
+        result += `  ${row.join('  ')}\n`;
+      }
+    }
+    
+    return result.trim();
+  }
+
+  private reconstructAifFromDict(aifDict: any): string {
+    let result = '';
+    
+    if (aifDict.dataName) {
+      result += `data_${aifDict.dataName}\n\n`;
+    }
+    
+    // Add properties
+    for (const [key, value] of Object.entries(aifDict.properties || {})) {
+      result += `_${key}           ${value}\n`;
+    }
+    
+    // Add adsorption data
+    if (aifDict.adsorptionData && aifDict.adsorptionData.length > 0) {
+      result += '\nloop_\n';
+      result += '_adsorp_pressure\n';
+      result += '_adsorp_loading\n';
+      for (const point of aifDict.adsorptionData) {
+        result += `${point.pressure}    ${point.loading}\n`;
+      }
+    }
+    
+    // Add desorption data
+    if (aifDict.desorptionData && aifDict.desorptionData.length > 0) {
+      result += '\nloop_\n';
+      result += '_desorp_pressure\n';
+      result += '_desorp_loading\n';
+      for (const point of aifDict.desorptionData) {
+        result += `${point.pressure}    ${point.loading}\n`;
+      }
+    }
+    
+    return result.trim();
   }
 
   private parseMetadata(): MPIFMetadata {
@@ -251,6 +318,17 @@ export class MPIFParser {
 
   private parseProductInfo(): ProductInfo {
     const cifData = this.extractTextBlock('_mpif_product_cif');
+    let parsedCif: any = undefined;
+    
+    // Parse CIF into structured format if available
+    if (cifData) {
+      try {
+        parsedCif = this.parseCifToDict(cifData);
+      } catch (error) {
+        console.warn('Failed to parse CIF data, keeping as string:', error);
+        parsedCif = cifData;
+      }
+    }
     
     return {
       type: this.extractValue('_mpif_product_type')?.replace(/'/g, '') as any || 'other',
@@ -264,7 +342,7 @@ export class MPIFParser {
       color: this.extractValue('_mpif_product_color')?.replace(/'/g, '') || '#000000',
       handlingAtmosphere: this.extractValue('_mpif_product_handling_atmosphere')?.replace(/'/g, '') as any || 'air',
       handlingNote: this.extractTextBlock('_mpif_product_handling_note'),
-      cif: cifData
+      cif: parsedCif
     };
   }
 
@@ -347,6 +425,142 @@ export class MPIFParser {
       ]),
       procedureFull: this.extractTextBlock('_mpif_procedure_full')
     };
+  }
+
+  private parseCifToDict(cifText: string): any {
+    const lines = cifText.split('\n').map(l => l.trim()).filter(l => l);
+    const result: any = {
+      dataName: '',
+      properties: {},
+      loops: []
+    };
+
+    // Extract data name
+    for (const line of lines) {
+      if (line.startsWith('data_')) {
+        result.dataName = line.substring(5);
+        break;
+      }
+    }
+
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+
+      if (line.startsWith('data_')) {
+        i++;
+        continue;
+      }
+
+      if (line.startsWith('loop_')) {
+        // Parse loop
+        const headers: string[] = [];
+        i++;
+
+        // Collect headers
+        while (i < lines.length && lines[i].startsWith('_')) {
+          headers.push(lines[i]);
+          i++;
+        }
+
+        // Collect data rows
+        const data: string[][] = [];
+        while (i < lines.length && !lines[i].startsWith('_') && !lines[i].startsWith('loop_') && !lines[i].startsWith('#')) {
+          const row = lines[i].split(/\s+/);
+          if (row.length > 0 && row[0]) {
+            data.push(row);
+          }
+          i++;
+        }
+
+        if (headers.length > 0) {
+          result.loops.push({ headers, data });
+        }
+      } else if (line.startsWith('_')) {
+        // Parse property
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          const key = parts[0];
+          const value = parts.slice(1).join(' ');
+          result.properties[key] = value;
+        }
+        i++;
+      } else {
+        i++;
+      }
+    }
+
+    return result;
+  }
+
+  private parseAifToDict(aifText: string): any {
+    const lines = aifText.split('\n').map(l => l.trim());
+    const result: any = {
+      dataName: '',
+      properties: {},
+      adsorptionData: [],
+      desorptionData: []
+    };
+
+    // Extract data name
+    for (const line of lines) {
+      if (line.startsWith('data_')) {
+        result.dataName = line.substring(5);
+        break;
+      }
+    }
+
+    let inAdsorptionLoop = false;
+    let inDesorptionLoop = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (!line || line.startsWith('#')) {
+        continue;
+      }
+
+      if (line.startsWith('_') && !line.startsWith('_adsorp_') && !line.startsWith('_desorp_')) {
+        // Property line
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          const key = parts[0].substring(1); // Remove leading underscore
+          const value = parts.slice(1).join(' ');
+          result.properties[key] = value;
+        }
+        inAdsorptionLoop = false;
+        inDesorptionLoop = false;
+      } else if (line.includes('_adsorp_pressure') || line.includes('_adsorp_loading')) {
+        inAdsorptionLoop = true;
+        inDesorptionLoop = false;
+      } else if (line.includes('_desorp_pressure') || line.includes('_desorp_loading')) {
+        inDesorptionLoop = true;
+        inAdsorptionLoop = false;
+      } else if (line.startsWith('loop_')) {
+        // Continue to next line
+        continue;
+      } else if (inAdsorptionLoop && line.match(/^[\d.\-+eE]+\s+[\d.\-+eE]+/)) {
+        // Adsorption data line
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          result.adsorptionData.push({
+            pressure: parseFloat(parts[0]),
+            loading: parseFloat(parts[1])
+          });
+        }
+      } else if (inDesorptionLoop && line.match(/^[\d.\-+eE]+\s+[\d.\-+eE]+/)) {
+        // Desorption data line
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          result.desorptionData.push({
+            pressure: parseFloat(parts[0]),
+            loading: parseFloat(parts[1])
+          });
+        }
+      }
+    }
+
+    return result;
   }
 
   private parseCharacterization(): Characterization {
@@ -544,7 +758,12 @@ export class MPIFParser {
     // Parse AIF data
     const aifData = this.extractTextBlock('_mpif_aif');
     if (aifData) {
-      characterization.aif = aifData;
+      try {
+        characterization.aif = this.parseAifToDict(aifData);
+      } catch (error) {
+        console.warn('Failed to parse AIF data, keeping as string:', error);
+        characterization.aif = aifData;
+      }
     }
 
     return characterization;
