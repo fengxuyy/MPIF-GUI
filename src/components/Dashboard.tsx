@@ -483,7 +483,7 @@ export function Dashboard({ className }: DashboardProps) {
                       className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Download className="h-4 w-4 mr-3" />
-                      Export Backend JSON
+                      Export JSON
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
