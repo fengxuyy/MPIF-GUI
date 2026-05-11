@@ -3,12 +3,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Characterization } from '@/types/mpif';
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
 import { useMPIFStore } from '@/store/mpifStore';
 import { parsePXRDData, parseTGAData } from '@/utils/parsing';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 interface CharacterizationFormProps {
   data: Characterization;
@@ -25,10 +26,17 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
     // If it's structured, keep it as-is (we'll just show "[Structured AIF Data]")
     return '[Structured AIF Data]';
   };
-  const [pxrdDataText, setPxrdDataText] = useState('');
-  const [tgaDataText, setTgaDataText] = useState('');
+  const formatPXRDData = (pxrd: Characterization['pxrd']) => {
+    return pxrd?.data?.map(point => `${point.twoTheta}\t${point.intensity}`).join('\n') || '';
+  };
+  const formatTGAData = (tga: Characterization['tga']) => {
+    return tga?.data?.map(point => `${point.temperature}\t${point.weightPercent}`).join('\n') || '';
+  };
+  const [pxrdDataText, setPxrdDataText] = useState(formatPXRDData(data?.pxrd));
+  const [tgaDataText, setTgaDataText] = useState(formatTGAData(data?.tga));
   const [aifContent, setAifContent] = useState(getAifString(data?.aif));
-  const [aifFileName, setAifFileName] = useState('');
+  const [aifFileName, setAifFileName] = useState(data?.aif ? 'Embedded AIF data' : '');
+  const syncingFromPropsRef = useRef(false);
 
   const {
     register,
@@ -48,61 +56,87 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
 
   // Reset form when data changes
   useEffect(() => {
+    syncingFromPropsRef.current = true;
     reset(data);
     setAifContent(getAifString(data?.aif));
-    setAifFileName('');
-    setPxrdDataText('');
-    setTgaDataText('');
+    setAifFileName(data?.aif ? 'Embedded AIF data' : '');
+    setPxrdDataText(formatPXRDData(data?.pxrd));
+    setTgaDataText(formatTGAData(data?.tga));
+
+    const timeoutId = window.setTimeout(() => {
+      syncingFromPropsRef.current = false;
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [data, reset]);
 
   // Watch for changes to trigger unsaved state and auto-save
   const watchedFields = watch();
-  const hasChanges = isDirty || aifContent !== getAifString(data?.aif);
+  const originalPxrdDataText = formatPXRDData(data?.pxrd);
+  const originalTgaDataText = formatTGAData(data?.tga);
+  const parsedPxrdData = parsePXRDData(pxrdDataText);
+  const parsedTgaData = parseTGAData(tgaDataText);
+  const hasChanges = isDirty ||
+    aifContent !== getAifString(data?.aif) ||
+    pxrdDataText !== originalPxrdDataText ||
+    tgaDataText !== originalTgaDataText;
 
-  const processData = (formData: Characterization) => {
+  const processData = useCallback((formData: Characterization) => {
+    const processedData: Characterization = { ...formData };
+
     // Parse PXRD data if provided
     if (pxrdDataText.trim()) {
-      const pxrdData = parsePXRDData(pxrdDataText);
-      formData.pxrd = {
-        ...(formData.pxrd || {}),
-        source: formData.pxrd?.source || 'Cu',
-        data: pxrdData
+      processedData.pxrd = {
+        ...(processedData.pxrd || {}),
+        source: processedData.pxrd?.source || 'Cu',
+        data: parsedPxrdData
       };
+    } else {
+      delete processedData.pxrd;
     }
 
     // Parse TGA data if provided
     if (tgaDataText.trim()) {
-      const tgaData = parseTGAData(tgaDataText);
-      formData.tga = {
-        data: tgaData
+      processedData.tga = {
+        data: parsedTgaData
       };
+    } else {
+      delete processedData.tga;
     }
 
     // Include AIF content if provided
     const aifStr = typeof aifContent === 'string' ? aifContent.trim() : '';
     if (aifStr && aifStr !== '[Structured AIF Data]') {
-      formData.aif = aifContent;
+      processedData.aif = aifContent;
     } else if (data?.aif && typeof data.aif !== 'string') {
       // Keep structured AIF if it exists
-      formData.aif = data.aif;
+      processedData.aif = data.aif;
+    } else {
+      delete processedData.aif;
     }
 
-    return formData;
-  };
+    return processedData;
+  }, [aifContent, data?.aif, parsedPxrdData, parsedTgaData, pxrdDataText, tgaDataText]);
+
+  const saveIfChanged = useCallback(() => {
+    if (!hasChanges || syncingFromPropsRef.current) return;
+
+    onUnsavedChange();
+    const formData = getValues();
+    const processedData = processData(formData);
+    onSave(processedData);
+  }, [getValues, hasChanges, onSave, onUnsavedChange, processData]);
 
   useEffect(() => {
-    if (hasChanges) {
-      onUnsavedChange();
+    if (hasChanges && !syncingFromPropsRef.current) {
       // Auto-save after a short delay
       const timeoutId = setTimeout(() => {
-        const formData = getValues();
-        const processedData = processData(formData);
-        onSave(processedData);
+        saveIfChanged();
       }, 500);
-      
+
       return () => clearTimeout(timeoutId);
     }
-  }, [watchedFields, aifContent, data, onUnsavedChange, hasChanges, onSave, getValues, pxrdDataText, tgaDataText]);
+  }, [watchedFields, hasChanges, saveIfChanged]);
 
   const onSubmit = (formData: Characterization) => {
     const processedData = processData(formData);
@@ -117,7 +151,16 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6"
+      onBlurCapture={(event) => {
+        const related = event.relatedTarget as HTMLElement | null;
+        if (!related || !event.currentTarget.contains(related)) {
+          setTimeout(() => saveIfChanged(), 0);
+        }
+      }}
+    >
       <div className={(dashboard as any).columnLayout === 'double' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'grid grid-cols-1 gap-6'}>
       {/* PXRD Data */}
       <Card>
@@ -177,6 +220,14 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
             <p className="text-xs text-muted-foreground">
               Enter 2θ (degrees) and intensity values, one per line
             </p>
+            <div className={`flex items-center gap-2 text-xs ${parsedPxrdData.length > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+              {parsedPxrdData.length > 0 ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+              <span>
+                {parsedPxrdData.length > 0
+                  ? `${parsedPxrdData.length} PXRD points attached for export`
+                  : 'No PXRD data attached yet'}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -202,6 +253,14 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
             <p className="text-xs text-muted-foreground">
               Enter temperature (°C) and weight percentage values, one per line
             </p>
+            <div className={`flex items-center gap-2 text-xs ${parsedTgaData.length > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+              {parsedTgaData.length > 0 ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+              <span>
+                {parsedTgaData.length > 0
+                  ? `${parsedTgaData.length} TGA points attached for export`
+                  : 'No TGA data attached yet'}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -217,9 +276,9 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>AIF File Upload</Label>
-            <AIFFileUpload 
+            <AIFFileUpload
               onFileLoad={handleAifFileLoad}
-              currentFileName={aifFileName}
+              currentFileName={aifFileName || (aifContent ? 'Embedded AIF data' : '')}
             />
             <p className="text-xs text-muted-foreground">
               Upload an Adsorption Information Format (.aif) file containing gas adsorption data
@@ -250,7 +309,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       </div>
 
       {/* Data Preview */}
-      {(pxrdDataText.trim() || tgaDataText.trim()) && (
+      {(parsedPxrdData.length > 0 || parsedTgaData.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>Data Preview</CardTitle>
@@ -263,15 +322,15 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
               <div>
                 <h4 className="text-sm font-medium mb-2">PXRD Data Points:</h4>
                 <p className="text-sm text-muted-foreground">
-                  {parsePXRDData(pxrdDataText).length} data points parsed
+                  {parsedPxrdData.length} data points parsed
                 </p>
-                {parsePXRDData(pxrdDataText).length > 0 && (
+                {parsedPxrdData.length > 0 && (
                   <div className="bg-muted/50 p-3 rounded-lg mt-2">
                     <p className="text-xs font-mono">
-                      Range: 2θ = {Math.min(...parsePXRDData(pxrdDataText).map(p => p.twoTheta)).toFixed(2)}° - {Math.max(...parsePXRDData(pxrdDataText).map(p => p.twoTheta)).toFixed(2)}°
+                      Range: 2θ = {Math.min(...parsedPxrdData.map(p => p.twoTheta)).toFixed(2)}° - {Math.max(...parsedPxrdData.map(p => p.twoTheta)).toFixed(2)}°
                     </p>
                     <p className="text-xs font-mono">
-                      Intensity: {Math.min(...parsePXRDData(pxrdDataText).map(p => p.intensity)).toFixed(0)} - {Math.max(...parsePXRDData(pxrdDataText).map(p => p.intensity)).toFixed(0)}
+                      Intensity: {Math.min(...parsedPxrdData.map(p => p.intensity)).toFixed(0)} - {Math.max(...parsedPxrdData.map(p => p.intensity)).toFixed(0)}
                     </p>
                   </div>
                 )}
@@ -282,15 +341,15 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
               <div>
                 <h4 className="text-sm font-medium mb-2">TGA Data Points:</h4>
                 <p className="text-sm text-muted-foreground">
-                  {parseTGAData(tgaDataText).length} data points parsed
+                  {parsedTgaData.length} data points parsed
                 </p>
-                {parseTGAData(tgaDataText).length > 0 && (
+                {parsedTgaData.length > 0 && (
                   <div className="bg-muted/50 p-3 rounded-lg mt-2">
                     <p className="text-xs font-mono">
-                      Temperature: {Math.min(...parseTGAData(tgaDataText).map(p => p.temperature)).toFixed(0)}°C - {Math.max(...parseTGAData(tgaDataText).map(p => p.temperature)).toFixed(0)}°C
+                      Temperature: {Math.min(...parsedTgaData.map(p => p.temperature)).toFixed(0)}°C - {Math.max(...parsedTgaData.map(p => p.temperature)).toFixed(0)}°C
                     </p>
                     <p className="text-xs font-mono">
-                      Weight: {Math.min(...parseTGAData(tgaDataText).map(p => p.weightPercent)).toFixed(1)}% - {Math.max(...parseTGAData(tgaDataText).map(p => p.weightPercent)).toFixed(1)}%
+                      Weight: {Math.min(...parsedTgaData.map(p => p.weightPercent)).toFixed(1)}% - {Math.max(...parsedTgaData.map(p => p.weightPercent)).toFixed(1)}%
                     </p>
                   </div>
                 )}
@@ -301,15 +360,15 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       )}
 
       {/* Live Visualization */}
-      {(pxrdDataText.trim() || tgaDataText.trim()) && (
-        <DataVisualization 
-          pxrdData={pxrdDataText.trim() ? {
-            source: (watch('pxrd.source') as any) || 'Cu',
-            wavelength: watch('pxrd.wavelength'),
-            data: parsePXRDData(pxrdDataText)
+      {(parsedPxrdData.length > 0 || parsedTgaData.length > 0) && (
+        <DataVisualization
+          pxrdData={parsedPxrdData.length > 0 ? {
+            source: watchedFields.pxrd?.source || 'Cu',
+            wavelength: watchedFields.pxrd?.wavelength,
+            data: parsedPxrdData
           } : undefined}
-          tgaData={tgaDataText.trim() ? {
-            data: parseTGAData(tgaDataText)
+          tgaData={parsedTgaData.length > 0 ? {
+            data: parsedTgaData
           } : undefined}
         />
       )}
@@ -321,4 +380,4 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
       </div>
     </form>
   );
-} 
+}

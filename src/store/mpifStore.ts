@@ -23,6 +23,9 @@ interface MPIFStore {
   
   // File actions
   exportMPIF: () => string;
+  saveDraft: () => void;
+  loadDraft: () => boolean;
+  getDraftInfo: () => { fileName?: string; savedAt: string } | null;
   resetData: () => void;
   clearUnsavedChanges: () => void;
   
@@ -30,6 +33,31 @@ interface MPIFStore {
   validateData: () => ValidationResult;
   
 }
+
+const DRAFT_STORAGE_KEY = 'mpif-gui:draft:v1';
+
+interface StoredMPIFDraft {
+  mpifData: MPIFData;
+  fileName?: string;
+  currentSection?: string;
+  savedAt: string;
+}
+
+const readStoredDraft = (): StoredMPIFDraft | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawDraft = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!rawDraft) return null;
+
+    const draft = JSON.parse(rawDraft) as StoredMPIFDraft;
+    if (!draft.mpifData || !draft.savedAt) return null;
+
+    return draft;
+  } catch {
+    return null;
+  }
+};
 
 const createDefaultMPIFData = (): MPIFData => ({
   metadata: {
@@ -348,6 +376,68 @@ export const useMPIFStore = create<MPIFStore>()(
       }
       
       return stringifyMPIF(exportData);
+    },
+
+    saveDraft: () => {
+      const data = get().mpifData;
+      if (!data || typeof window === 'undefined') return;
+
+      const savedAt = new Date().toISOString();
+      const draft: StoredMPIFDraft = {
+        mpifData: data,
+        fileName: get().fileState.fileName,
+        currentSection: get().dashboard.currentSection,
+        savedAt
+      };
+
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      set({
+        dashboard: {
+          ...get().dashboard,
+          hasUnsavedChanges: false
+        },
+        fileState: {
+          ...get().fileState,
+          lastSaved: new Date(savedAt)
+        }
+      });
+    },
+
+    loadDraft: () => {
+      const draft = readStoredDraft();
+      if (!draft) return false;
+
+      set({
+        mpifData: draft.mpifData,
+        fileState: {
+          fileName: draft.fileName || 'draft.mpif',
+          lastSaved: new Date(draft.savedAt),
+          isLoading: false,
+          error: undefined
+        },
+        validation: {
+          isValid: true,
+          errors: []
+        },
+        dashboard: {
+          ...get().dashboard,
+          currentSection: draft.currentSection || 'metadata',
+          hasUnsavedChanges: false,
+          isEditing: true
+        }
+      });
+
+      return true;
+    },
+
+    getDraftInfo: () => {
+      const draft = readStoredDraft();
+      if (!draft) return null;
+
+      return {
+        fileName: draft.fileName,
+        savedAt: draft.savedAt
+      };
     },
 
     resetData: () => {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,10 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [fileName, setFileName] = useState<string>(currentFileName || '');
+
+  useEffect(() => {
+    setFileName(currentFileName || '');
+  }, [currentFileName]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -83,6 +87,9 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
       case 'error':
         return <XCircle className="h-8 w-8 text-red-500" />;
       default:
+        if (fileName) {
+          return <CheckCircle className="h-8 w-8 text-green-500" />;
+        }
         return <Atom className="h-8 w-8 text-muted-foreground" />;
     }
   };
@@ -153,6 +160,12 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
             <span>Crystallographic Information File</span>
           </div>
         </div>
+      )}
+
+      {uploadStatus === 'idle' && fileName && (
+        <p className="text-sm text-green-700">
+          This CIF will be embedded in the exported MPIF.
+        </p>
       )}
       
       {/* Error Action */}

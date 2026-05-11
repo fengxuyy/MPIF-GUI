@@ -40,7 +40,7 @@ export class MPIFParser {
 
     // Data block name
     result += `data_${data.metadata.dataName}\n`;
-    
+
     // Metadata
     result += `_mpif_audit_creation_date\t${data.metadata.creationDate}\n`;
     result += `_mpif_audit_generator_version\t${data.metadata.generatorVersion}\n`;
@@ -72,11 +72,11 @@ export class MPIFParser {
     result += `_mpif_product_color\t'${data.productInfo.color}'\n`;
     result += `_mpif_product_handling_atmosphere\t'${data.productInfo.handlingAtmosphere}'\n`;
     result += `_mpif_product_handling_note\n;\n${data.productInfo.handlingNote || ''}\n;\n`;
-    
+
     // Add CIF data if available
     if (data.productInfo.cif) {
-      const cifString = typeof data.productInfo.cif === 'string' 
-        ? data.productInfo.cif 
+      const cifString = typeof data.productInfo.cif === 'string'
+        ? data.productInfo.cif
         : this.reconstructCifFromDict(data.productInfo.cif);
       result += `_mpif_product_cif\n;\n${cifString}\n;\n`;
     }
@@ -132,15 +132,15 @@ export class MPIFParser {
 
     // Section 4: Synthesis Details
     result += '#Section 4: Synthesis Procedure Details\n';
-    
+
     // Substrates
     if (data.synthesisDetails.substrates.length > 0) {
       result += `_mpif_substrate_number\t${data.synthesisDetails.substrates.length}\n`;
       result += 'loop_\n';
       result += '_mpif_substrate_id\n_mpif_substrate_name\n_mpif_substrate_molarity\n_mpif_substrate_molarity_unit\n_mpif_substrate_amount\n_mpif_substrate_amount_unit\n_mpif_substrate_supplier\n_mpif_substrate_purity_percent\n_mpif_substrate_cas\n_mpif_substrate_smiles\n';
-      
-      data.synthesisDetails.substrates.forEach(substrate => {
-        result += `${substrate.id}\t${substrate.name}\t${substrate.molarity || ''}\t${substrate.molarityUnit || ''}\t${substrate.amount}\t${substrate.amountUnit}\t${substrate.supplier || ''}\t${substrate.purity || ''}\t${substrate.casNumber || ''}\t${substrate.smiles || '?'}\n`;
+
+      data.synthesisDetails.substrates.forEach((substrate, index) => {
+        result += `${this.sequenceId('R', index)}\t${substrate.name}\t${substrate.molarity || ''}\t${substrate.molarityUnit || ''}\t${substrate.amount}\t${substrate.amountUnit}\t${substrate.supplier || ''}\t${substrate.purity || ''}\t${substrate.casNumber || ''}\t${substrate.smiles || '?'}\n`;
       });
       result += '\n';
     }
@@ -150,9 +150,9 @@ export class MPIFParser {
       result += `_mpif_solvent_number\t${data.synthesisDetails.solvents.length}\n`;
       result += 'loop_\n';
       result += '_mpif_solvent_id\n_mpif_solvent_name\n_mpif_solvent_molarity\n_mpif_solvent_molarity_unit\n_mpif_solvent_amount\n_mpif_solvent_amount_unit\n_mpif_solvent_supplier\n_mpif_solvent_purity_percent\n_mpif_solvent_cas\n_mpif_solvent_smiles\n';
-      
-      data.synthesisDetails.solvents.forEach(solvent => {
-        result += `${solvent.id}\t${solvent.name}\t${solvent.molarity || ''}\t${solvent.molarityUnit || ''}\t${solvent.amount}\t${solvent.amountUnit}\t${solvent.supplier || ''}\t${solvent.purity || ''}\t${solvent.casNumber || ''}\t${solvent.smiles || '?'}\n`;
+
+      data.synthesisDetails.solvents.forEach((solvent, index) => {
+        result += `${this.sequenceId('S', index)}\t${solvent.name}\t${solvent.molarity || ''}\t${solvent.molarityUnit || ''}\t${solvent.amount}\t${solvent.amountUnit}\t${solvent.supplier || ''}\t${solvent.purity || ''}\t${solvent.casNumber || ''}\t${solvent.smiles || '?'}\n`;
       });
       result += '\n';
     }
@@ -162,9 +162,9 @@ export class MPIFParser {
       result += `_mpif_vessel_number\t${data.synthesisDetails.vessels.length}\n`;
       result += 'loop_\n';
       result += '_mpif_vessel_id\n_mpif_vessel_volume\n_mpif_vessel_volume_unit\n_mpif_vessel_material\n_mpif_vessel_type\n_mpif_vessel_supplier\n_mpif_vessel_purpose\n_mpif_vessel_note\n';
-      
-      data.synthesisDetails.vessels.forEach(vessel => {
-        result += `${vessel.id}\t${vessel.volume}\t${vessel.volumeUnit}\t${vessel.material}\t${vessel.type}\t${vessel.supplier || '-'}\t${vessel.purpose}\t${vessel.note || '-'}\n`;
+
+      data.synthesisDetails.vessels.forEach((vessel, index) => {
+        result += `${this.sequenceId('V', index)}\t${vessel.volume}\t${vessel.volumeUnit}\t${vessel.material}\t${vessel.type}\t${vessel.supplier || '-'}\t${vessel.purpose}\t${vessel.note || '-'}\n`;
       });
       result += '\n';
     }
@@ -174,9 +174,9 @@ export class MPIFParser {
       result += `_mpif_hardware_number\t${data.synthesisDetails.hardware.length}\n`;
       result += 'loop_\n';
       result += '_mpif_hardware_id\n_mpif_hardware_purpose\n_mpif_hardware_general_name\n_mpif_hardware_product_name\n_mpif_hardware_supplier\n_mpif_hardware_note\n';
-      
-      data.synthesisDetails.hardware.forEach(hardware => {
-        result += `${hardware.id}\t${hardware.purpose}\t${hardware.generalName}\t${hardware.productName || ''}\t${hardware.supplier || ''}\t${hardware.note || '-'}\n`;
+
+      data.synthesisDetails.hardware.forEach((hardware, index) => {
+        result += `${this.sequenceId('H', index)}\t${hardware.purpose}\t${hardware.generalName}\t${hardware.productName || ''}\t${hardware.supplier || ''}\t${hardware.note || '-'}\n`;
       });
       result += '\n';
     }
@@ -186,9 +186,9 @@ export class MPIFParser {
       result += `_mpif_procedure_number\t${data.synthesisDetails.steps.length}\n`;
       result += 'loop_\n';
       result += '_mpif_procedure_id\n_mpif_procedure_type\n_mpif_procedure_atmosphere\n_mpif_procedure_detail\n';
-      
-      data.synthesisDetails.steps.forEach(step => {
-        result += `${step.id}\t${step.type}\t${step.atmosphere}\t${step.detail}\n`;
+
+      data.synthesisDetails.steps.forEach((step, index) => {
+        result += `${this.sequenceId('P', index)}\t${step.type}\t${step.atmosphere}\t${step.detail}\n`;
       });
       result += '\n';
     }
@@ -200,7 +200,7 @@ export class MPIFParser {
     // Characterization
     if (data.characterization.pxrd || data.characterization.tga || data.characterization.aif) {
       result += '#Characterization Information\n\n';
-      
+
       if (data.characterization.pxrd) {
         result += '_mpif_pxrd_data\n;\n';
         result += `_mpif_pxrd_source\t'${data.characterization.pxrd.source}'\n`;
@@ -215,7 +215,7 @@ export class MPIFParser {
       }
 
       if (data.characterization.tga) {
-        result += '_mpif_tga_data\n;\nloop_\n_tga_temperature_celcius\n_tga_weight_percent';
+        result += '_mpif_tga_data\n;\nloop_\n_tga_temperature_celcius\n_tga_weight_percent\n';
         data.characterization.tga.data.forEach(point => {
           result += `${point.temperature}\t${point.weightPercent}\n`;
         });
@@ -233,18 +233,22 @@ export class MPIFParser {
     return result;
   }
 
+  private sequenceId(prefix: string, index: number): string {
+    return `${prefix}${index + 1}`;
+  }
+
   private reconstructCifFromDict(cifDict: any): string {
     let result = '';
-    
+
     if (cifDict.dataName) {
       result += `data_${cifDict.dataName}\n`;
     }
-    
+
     // Add properties
     for (const [key, value] of Object.entries(cifDict.properties || {})) {
       result += `${key}   ${value}\n`;
     }
-    
+
     // Add loops
     for (const loop of cifDict.loops || []) {
       result += 'loop_\n';
@@ -255,22 +259,22 @@ export class MPIFParser {
         result += `  ${row.join('  ')}\n`;
       }
     }
-    
+
     return result.trim();
   }
 
   private reconstructAifFromDict(aifDict: any): string {
     let result = '';
-    
+
     if (aifDict.dataName) {
       result += `data_${aifDict.dataName}\n\n`;
     }
-    
+
     // Add properties
     for (const [key, value] of Object.entries(aifDict.properties || {})) {
       result += `_${key}           ${value}\n`;
     }
-    
+
     // Add adsorption data
     if (aifDict.adsorptionData && aifDict.adsorptionData.length > 0) {
       result += '\nloop_\n';
@@ -280,7 +284,7 @@ export class MPIFParser {
         result += `${point.pressure}    ${point.loading}\n`;
       }
     }
-    
+
     // Add desorption data
     if (aifDict.desorptionData && aifDict.desorptionData.length > 0) {
       result += '\nloop_\n';
@@ -290,13 +294,13 @@ export class MPIFParser {
         result += `${point.pressure}    ${point.loading}\n`;
       }
     }
-    
+
     return result.trim();
   }
 
   private parseMetadata(): MPIFMetadata {
     const metadata: Partial<MPIFMetadata> = {};
-    
+
     // Parse data block name
     const dataLine = this.findLine(/^data_(.+)$/);
     metadata.dataName = dataLine ? dataLine[1] : '';
@@ -305,7 +309,7 @@ export class MPIFParser {
     metadata.generatorVersion = this.extractValue('_mpif_audit_generator_version') || '';
     metadata.publicationDOI = this.extractValue('_mpif_audit_publication_doi')?.replace(/'/g, '') || '';
     metadata.procedureStatus = this.extractValue('_mpif_audit_procedure_status')?.replace(/'/g, '') as any || 'test';
-    
+
     // Parse author details into metadata
     metadata.name = this.extractValue('_mpif_audit_contact_author_name')?.replace(/'/g, '') || '';
     metadata.email = this.extractValue('_mpif_audit_contact_author_email') || '';
@@ -319,7 +323,7 @@ export class MPIFParser {
   private parseProductInfo(): ProductInfo {
     const cifData = this.extractTextBlock('_mpif_product_cif');
     let parsedCif: any = undefined;
-    
+
     // Parse CIF into structured format if available
     if (cifData) {
       try {
@@ -329,7 +333,7 @@ export class MPIFParser {
         parsedCif = cifData;
       }
     }
-    
+
     return {
       type: this.extractValue('_mpif_product_type')?.replace(/'/g, '') as any || 'other',
       casNumber: this.extractValue('_mpif_product_cas'),
@@ -407,11 +411,11 @@ export class MPIFParser {
   private parseSynthesisDetails(): SynthesisDetails {
     return {
       substrates: this.parseLoopData('substrate', [
-        'id', 'name', 'molarity', 'molarityUnit', 'amount', 'amountUnit', 
+        'id', 'name', 'molarity', 'molarityUnit', 'amount', 'amountUnit',
         'supplier', 'purity', 'casNumber', 'smiles'
       ]),
       solvents: this.parseLoopData('solvent', [
-        'id', 'name', 'molarity', 'molarityUnit', 'amount', 'amountUnit', 
+        'id', 'name', 'molarity', 'molarityUnit', 'amount', 'amountUnit',
         'supplier', 'purity', 'casNumber', 'smiles'
       ]),
       vessels: this.parseLoopData('vessel', [
@@ -575,37 +579,35 @@ export class MPIFParser {
 
       let inLoopData = false;
       let foundDataEnd = false;
-      
+
       for (let i = pxrdStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
         const line = this.lines[i];
-        
+
         if (line === ';' && inLoopData) {
           foundDataEnd = true;
           break;
         } else if (line.includes('_mpif_pxrd_source')) {
-          pxrd.source = line.split('\t')[1]?.replace(/'/g, '') as any;
+          pxrd.source = this.extractLineValue(line, '_mpif_pxrd_source')?.replace(/'/g, '') as any;
         } else if (line.includes('_mpif_pxrd_lambda')) {
-          pxrd.wavelength = parseFloat(line.split('\t')[1]);
+          const wavelength = this.extractLineValue(line, '_mpif_pxrd_lambda');
+          pxrd.wavelength = wavelength ? parseFloat(wavelength) : undefined;
         } else if (line.includes('_pxrd_2theta') || line.includes('_pxrd_intensity')) {
           inLoopData = true;
-        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
-          const parts = line.split('\t');
-          if (parts.length >= 2) {
-            const twoTheta = parseFloat(parts[0]);
-            const intensity = parseFloat(parts[1]);
-            if (!isNaN(twoTheta) && !isNaN(intensity)) {
-              pxrd.data!.push({
-                twoTheta,
-                intensity
-              });
-            }
+        } else if (inLoopData && !line.startsWith('_')) {
+          const values = this.parseNumericColumns(line, 2);
+          if (values) {
+            const [twoTheta, intensity] = values;
+            pxrd.data!.push({
+              twoTheta,
+              intensity
+            });
           }
         } else if (line.startsWith('_mpif_') && inLoopData) {
           // New section started, stop parsing PXRD
           foundDataEnd = true;
         }
       }
-      
+
       if (pxrd.data!.length > 0) {
         characterization.pxrd = pxrd as PXRDData;
       }
@@ -615,36 +617,43 @@ export class MPIFParser {
     const tgaStartIndex = this.findLineIndex('_mpif_tga_data');
     if (tgaStartIndex !== -1) {
       const tga: TGAData = { data: [] };
-      
+
       let inLoopData = false;
       let foundDataEnd = false;
-      
+
       for (let i = tgaStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
         const line = this.lines[i];
-        
+
         if (line === ';' && inLoopData) {
           foundDataEnd = true;
           break;
-        } else if (line.includes('_tga_temperature_celcius') || line.includes('_tga_weight_percent')) {
+        } else if (line.includes('_tga_temperature_celcius') || line.includes('_tga_temperature_celsius')) {
           inLoopData = true;
-        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
-          const parts = line.split('\t');
-          if (parts.length >= 2) {
-            const temperature = parseFloat(parts[0]);
-            const weightPercent = parseFloat(parts[1]);
-            if (!isNaN(temperature) && !isNaN(weightPercent)) {
-              tga.data.push({
-                temperature,
-                weightPercent
-              });
-            }
+        } else if (line.includes('_tga_weight_percent')) {
+          inLoopData = true;
+          const inlineValues = this.parseNumericColumns(line.replace('_tga_weight_percent', ''), 2);
+          if (inlineValues) {
+            const [temperature, weightPercent] = inlineValues;
+            tga.data.push({
+              temperature,
+              weightPercent
+            });
+          }
+        } else if (inLoopData && !line.startsWith('_')) {
+          const values = this.parseNumericColumns(line, 2);
+          if (values) {
+            const [temperature, weightPercent] = values;
+            tga.data.push({
+              temperature,
+              weightPercent
+            });
           }
         } else if (line.startsWith('_mpif_') && inLoopData) {
           // New section started, stop parsing TGA
           foundDataEnd = true;
         }
       }
-      
+
       if (tga.data.length > 0) {
         characterization.tga = tga;
       }
@@ -662,56 +671,54 @@ export class MPIFParser {
       for (let i = 0; i < adsorptionStartIndex; i++) {
         const line = this.lines[i];
         if (line.includes('_exptl_temperature')) {
-          adsorption.experimentalTemperature = parseFloat(line.split('\t')[1]);
+          const value = this.extractLineValue(line, '_exptl_temperature');
+          adsorption.experimentalTemperature = value ? parseFloat(value) : undefined;
         } else if (line.includes('_exptl_method')) {
-          adsorption.experimentalMethod = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.experimentalMethod = this.extractLineValue(line, '_exptl_method')?.replace(/'/g, '');
         } else if (line.includes('_adsnt_sample_mass')) {
-          adsorption.sampleMass = parseFloat(line.split('\t')[1]);
+          const value = this.extractLineValue(line, '_adsnt_sample_mass');
+          adsorption.sampleMass = value ? parseFloat(value) : undefined;
         } else if (line.includes('_adsnt_sample_id')) {
-          adsorption.sampleId = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.sampleId = this.extractLineValue(line, '_adsnt_sample_id')?.replace(/'/g, '');
         } else if (line.includes('_adsnt_material_id')) {
-          adsorption.materialId = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.materialId = this.extractLineValue(line, '_adsnt_material_id')?.replace(/'/g, '');
         } else if (line.includes('_adsnt_info')) {
-          adsorption.sampleInfo = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.sampleInfo = this.extractLineValue(line, '_adsnt_info')?.replace(/'/g, '');
         } else if (line.includes('_units_temperature')) {
-          adsorption.units!.temperature = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.units!.temperature = this.extractLineValue(line, '_units_temperature')?.replace(/'/g, '');
         } else if (line.includes('_units_pressure')) {
-          adsorption.units!.pressure = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.units!.pressure = this.extractLineValue(line, '_units_pressure')?.replace(/'/g, '');
         } else if (line.includes('_units_mass')) {
-          adsorption.units!.mass = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.units!.mass = this.extractLineValue(line, '_units_mass')?.replace(/'/g, '');
         } else if (line.includes('_units_loading')) {
-          adsorption.units!.loading = line.split('\t')[1]?.replace(/'/g, '');
+          adsorption.units!.loading = this.extractLineValue(line, '_units_loading')?.replace(/'/g, '');
         }
       }
 
       let inLoopData = false;
       let foundDataEnd = false;
-      
+
       for (let i = adsorptionStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
         const line = this.lines[i];
-        
+
         if (line.includes('_adsorp_p0') || line.includes('_adsorp_amount')) {
           inLoopData = true;
-        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
-          const parts = line.split('\t');
-          if (parts.length >= 3) {
-            const pressure = parseFloat(parts[0]);
-            const p0 = parseFloat(parts[1]);
-            const amount = parseFloat(parts[2]);
-            if (!isNaN(pressure) && !isNaN(p0) && !isNaN(amount)) {
-              adsorption.data!.push({
-                pressure,
-                p0,
-                amount
-              });
-            }
+        } else if (inLoopData && !line.startsWith('_')) {
+          const values = this.parseNumericColumns(line, 3);
+          if (values) {
+            const [pressure, p0, amount] = values;
+            adsorption.data!.push({
+              pressure,
+              p0,
+              amount
+            });
           }
         } else if (line.startsWith('_desorp_') || line.startsWith('#') || line === '') {
           // New section started, stop parsing adsorption
           foundDataEnd = true;
         }
       }
-      
+
       if (adsorption.data!.length > 0) {
         characterization.adsorption = adsorption as AdsorptionData;
       }
@@ -721,35 +728,31 @@ export class MPIFParser {
     const desorptionStartIndex = this.findLineIndex('_desorp_pressure');
     if (desorptionStartIndex !== -1) {
       const desorption: DesorptionData = { data: [] };
-      
+
       let inLoopData = false;
       let foundDataEnd = false;
-      
+
       for (let i = desorptionStartIndex + 1; i < this.lines.length && !foundDataEnd; i++) {
         const line = this.lines[i];
-        
+
         if (line.includes('_desorp_p0') || line.includes('_desorp_amount')) {
           inLoopData = true;
-        } else if (inLoopData && line.includes('\t') && !line.startsWith('_')) {
-          const parts = line.split('\t');
-          if (parts.length >= 3) {
-            const pressure = parseFloat(parts[0]);
-            const p0 = parseFloat(parts[1]);
-            const amount = parseFloat(parts[2]);
-            if (!isNaN(pressure) && !isNaN(p0) && !isNaN(amount)) {
-              desorption.data.push({
-                pressure,
-                p0,
-                amount
-              });
-            }
+        } else if (inLoopData && !line.startsWith('_')) {
+          const values = this.parseNumericColumns(line, 3);
+          if (values) {
+            const [pressure, p0, amount] = values;
+            desorption.data.push({
+              pressure,
+              p0,
+              amount
+            });
           }
         } else if (line.startsWith('_') && !line.startsWith('_desorp_') || line.startsWith('#')) {
           // New section started, stop parsing desorption
           foundDataEnd = true;
         }
       }
-      
+
       if (desorption.data.length > 0) {
         characterization.desorption = desorption;
       }
@@ -772,12 +775,12 @@ export class MPIFParser {
   private parseLoopData(type: string, fields: string[]): any[] {
     const numberKey = `_mpif_${type}_number`;
     const count = parseInt(this.extractValue(numberKey) || '0');
-    
+
     if (count === 0) return [];
 
     const results: any[] = [];
     const loopStart = this.findLineIndex(`_mpif_${type}_id`);
-    
+
     if (loopStart === -1) return [];
 
     // Skip header lines to get to data
@@ -793,20 +796,20 @@ export class MPIFParser {
     let itemsParsed = 0;
     for (let i = dataStart; i < this.lines.length && itemsParsed < count; i++) {
       const line = this.lines[i];
-      
+
       // Stop if we hit a new section
       if (line.startsWith('_mpif_') || line.startsWith('#') || line === '') {
         break;
       }
-      
+
       const values = line.split('\t');
       if (values.length < fields.length) continue; // Skip malformed lines
-      
+
       const item: any = {};
-      
+
       fields.forEach((field, index) => {
         let value = values[index] || '';
-        
+
         // Type conversion
         if (['molarity', 'amount', 'purity', 'volume'].includes(field)) {
           const numValue = parseFloat(value);
@@ -817,7 +820,7 @@ export class MPIFParser {
           item[field] = (value === '?' || value === '-' || value === '') ? undefined : value;
         }
       });
-      
+
       results.push(item);
       itemsParsed++;
     }
@@ -828,9 +831,30 @@ export class MPIFParser {
   private extractValue(key: string): string | undefined {
     const line = this.lines.find(line => line.startsWith(key));
     if (!line) return undefined;
-    
-    const parts = line.split('\t');
-    return parts.length > 1 ? parts[1] : undefined;
+
+    return this.extractLineValue(line, key);
+  }
+
+  private extractLineValue(line: string, key: string): string | undefined {
+    if (!line.startsWith(key)) return undefined;
+
+    const value = line.slice(key.length).trim();
+    return value || undefined;
+  }
+
+  private parseNumericColumns(line: string, expectedColumns: number): number[] | undefined {
+    const values = line
+      .trim()
+      .split(/[\t,\s]+/)
+      .filter(Boolean)
+      .slice(0, expectedColumns)
+      .map(Number);
+
+    if (values.length < expectedColumns || values.some(Number.isNaN)) {
+      return undefined;
+    }
+
+    return values;
   }
 
   private extractTextBlock(key: string): string | undefined {
@@ -840,10 +864,10 @@ export class MPIFParser {
     let content = '';
     let inBlock = false;
     let foundStart = false;
-    
+
     for (let i = startIndex + 1; i < this.lines.length; i++) {
       const line = this.lines[i];
-      
+
       if (line === ';') {
         if (inBlock) {
           break; // End of block
@@ -900,4 +924,4 @@ export const parseMPIF = (content: string): MPIFData => {
 export const stringifyMPIF = (data: MPIFData): string => {
   const parser = new MPIFParser();
   return parser.stringify(data);
-}; 
+};

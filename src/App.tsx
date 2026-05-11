@@ -9,21 +9,21 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          <Route 
-            path="/" 
-            element={<IntroPageWrapper />} 
+          <Route
+            path="/"
+            element={<IntroPageWrapper />}
           />
-          <Route 
-            path="/dashboard" 
-            element={<Dashboard />} 
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
           />
-          <Route 
-            path="/documentation" 
-            element={<MPIFDocumentation />} 
+          <Route
+            path="/documentation"
+            element={<MPIFDocumentation />}
           />
-          <Route 
-            path="*" 
-            element={<div className="flex items-center justify-center h-screen">Page Not Found</div>} 
+          <Route
+            path="*"
+            element={<div className="flex items-center justify-center h-screen">Page Not Found</div>}
           />
         </Routes>
       </div>
@@ -35,6 +35,8 @@ function IntroPageWrapper() {
   const navigate = useNavigate();
   const loadMPIFFile = useMPIFStore((state) => state.loadMPIFFile);
   const createNewMPIF = useMPIFStore((state) => state.createNewMPIF);
+  const loadDraft = useMPIFStore((state) => state.loadDraft);
+  const getDraftInfo = useMPIFStore((state) => state.getDraftInfo);
 
   const handleCreate = () => {
     createNewMPIF();
@@ -46,7 +48,20 @@ function IntroPageWrapper() {
     navigate('/dashboard');
   };
 
-  return <IntroPage onCreate={handleCreate} onFileUpload={handleFileUploaded} />;
+  const handleLoadDraft = () => {
+    if (loadDraft()) {
+      navigate('/dashboard');
+    }
+  };
+
+  return (
+    <IntroPage
+      onCreate={handleCreate}
+      onFileUpload={handleFileUploaded}
+      onLoadDraft={handleLoadDraft}
+      draftInfo={getDraftInfo()}
+    />
+  );
 }
 
-export default App; 
+export default App;

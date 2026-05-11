@@ -34,6 +34,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
     formState: { errors: formErrors, isDirty },
     getValues,
     reset,
+    watch,
   } = useForm<SynthesisDetails>({
     defaultValues: data || {
       substrates: [{ id: '1', name: '', amount: undefined, amountUnit: '' }],
@@ -78,8 +79,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
     return errors.some(error => error.field === fieldName);
   };
 
+  const withSequentialIds = useCallback((values: SynthesisDetails): SynthesisDetails => ({
+    ...values,
+    substrates: values.substrates.map((item, index) => ({ ...item, id: `R${index + 1}` })),
+    solvents: values.solvents.map((item, index) => ({ ...item, id: `S${index + 1}` })),
+    vessels: values.vessels.map((item, index) => ({ ...item, id: `V${index + 1}` })),
+    hardware: values.hardware.map((item, index) => ({ ...item, id: `H${index + 1}` })),
+    steps: values.steps.map((item, index) => ({ ...item, id: `P${index + 1}` })),
+  }), []);
+
   const onSubmit = (formData: SynthesisDetails) => {
-    onSave(formData);
+    onSave(withSequentialIds(formData));
   };
 
   // Track last saved data reference
@@ -100,25 +110,23 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
   }, [data, reset, getValues, isEqual]);
 
   const saveIfChanged = useCallback(() => {
-    const current = getValues();
+    const current = withSequentialIds(getValues());
     if (!isEqual(current, lastSavedRef.current)) {
       onUnsavedChange();
       onSave(current);
     }
-  }, [getValues, isEqual, onSave, onUnsavedChange]);
+  }, [getValues, isEqual, onSave, onUnsavedChange, withSequentialIds]);
 
-  // Debounced autosave only when form is not focused
+  const watchedFields = watch();
+
+  // Debounced autosave keeps the store current while the user is editing.
   useEffect(() => {
     if (!isDirty) return;
     const timeoutId = setTimeout(() => {
-      const activeElement = document.activeElement as HTMLElement | null;
-      const formHasFocus = !!(formRef.current && activeElement && formRef.current.contains(activeElement));
-      if (!formHasFocus) {
-        saveIfChanged();
-      }
+      saveIfChanged();
     }, 600);
     return () => clearTimeout(timeoutId);
-  }, [isDirty, saveIfChanged]);
+  }, [isDirty, watchedFields, saveIfChanged]);
 
   return (
     <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6" onBlurCapture={(e) => {
@@ -137,7 +145,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendSubstrate({ id: Date.now().toString(), name: '', amount: undefined as any, amountUnit: '' })}
+              onClick={() => appendSubstrate({ id: `R${substrateFields.length + 1}`, name: '', amount: undefined as any, amountUnit: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Substrate
@@ -156,7 +164,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Label>ID</Label>
                   <Input value={`R${index + 1}`} disabled />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`substrates.${index}.name`}>Name *</Label>
                   <Input
@@ -167,7 +175,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                     <p className="text-sm text-red-600">{formErrors.substrates[index]?.name?.message}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`substrates.${index}.molarity`}>Molarity</Label>
                   <Input
@@ -200,7 +208,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Input
                     type="number"
                     step="0.001"
-                    {...register(`substrates.${index}.amount`, { 
+                    {...register(`substrates.${index}.amount`, {
                       required: 'Amount is required',
                       valueAsNumber: true,
                       min: { value: 0, message: 'Amount must be positive' }
@@ -290,7 +298,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendSolvent({ id: Date.now().toString(), name: '', amount: undefined as any, amountUnit: '' })}
+              onClick={() => appendSolvent({ id: `S${solventFields.length + 1}`, name: '', amount: undefined as any, amountUnit: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Solvent
@@ -309,7 +317,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Label>ID</Label>
                   <Input value={`S${index + 1}`} disabled />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`solvents.${index}.name`}>Name *</Label>
                   <Input
@@ -320,7 +328,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                     <p className="text-sm text-red-600">{formErrors.solvents[index]?.name?.message}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`solvents.${index}.molarity`}>Molarity</Label>
                   <Input
@@ -353,7 +361,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Input
                     type="number"
                     step="0.001"
-                    {...register(`solvents.${index}.amount`, { 
+                    {...register(`solvents.${index}.amount`, {
                       required: 'Amount is required',
                       valueAsNumber: true,
                       min: { value: 0, message: 'Amount must be positive' }
@@ -440,13 +448,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendVessel({ 
-                id: `V${vesselFields.length + 1}`, 
-                volume: undefined as any, 
-                volumeUnit: '', 
-                material: '', 
-                type: '', 
-                purpose: '' 
+              onClick={() => appendVessel({
+                id: `V${vesselFields.length + 1}`,
+                volume: undefined as any,
+                volumeUnit: '',
+                material: '',
+                type: '',
+                purpose: ''
               })}
             >
               <Plus className="h-4 w-4 mr-1" />
@@ -480,13 +488,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                     )}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`vessels.${index}.volume`}>Volume *</Label>
                   <Input
                     type="number"
                     step="0.1"
-                    {...register(`vessels.${index}.volume`, { 
+                    {...register(`vessels.${index}.volume`, {
                       required: 'Volume is required',
                       valueAsNumber: true,
                       min: { value: 0, message: 'Volume must be positive' }
@@ -588,7 +596,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Label>ID</Label>
                   <Input value={`H${index + 1}`} disabled />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor={`hardware.${index}.purpose`}>Purpose *</Label>
                   <Controller
@@ -668,7 +676,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             <Button
               type="button"
               size="sm"
-              onClick={() => appendStep({ id: Date.now().toString(), type: '', atmosphere: '', detail: '' })}
+              onClick={() => appendStep({ id: `P${stepFields.length + 1}`, type: '', atmosphere: '', detail: '' })}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Step
@@ -695,7 +703,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   )}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor={`steps.${index}.atmosphere`}>Atmosphere *</Label>
                 <Controller
@@ -770,4 +778,4 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
       </div>
     </form>
   );
-} 
+}

@@ -3,11 +3,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductInfo } from '@/types/mpif';
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { CIFFileUpload } from '../ui/CIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
 import { cn } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 interface ValidationError {
   field: string;
@@ -32,7 +33,8 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
     return '[Structured CIF Data]';
   };
   const [cifContent, setCifContent] = useState(getCifString(data?.cif));
-  const [cifFileName, setCifFileName] = useState('');
+  const [cifFileName, setCifFileName] = useState(data?.cif ? 'Embedded CIF data' : '');
+  const syncingFromPropsRef = useRef(false);
 
   const {
     register,
@@ -62,46 +64,60 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
     return errors.some(error => error.field === fieldName);
   };
 
-  const onSubmit = (formData: ProductInfo) => {
+  const mergeCifData = useCallback((formData: ProductInfo): ProductInfo => {
+    const nextData = { ...formData };
+
     // Include CIF content if provided
     const cifStr = typeof cifContent === 'string' ? cifContent.trim() : '';
     if (cifStr && cifStr !== '[Structured CIF Data]') {
-      formData.cif = cifContent;
+      nextData.cif = cifContent;
     } else if (data?.cif && typeof data.cif !== 'string') {
       // Keep structured CIF if it exists
-      formData.cif = data.cif;
+      nextData.cif = data.cif;
+    } else {
+      delete nextData.cif;
     }
-    onSave(formData);
+
+    return nextData;
+  }, [cifContent, data?.cif]);
+
+  const onSubmit = (formData: ProductInfo) => {
+    onSave(mergeCifData(formData));
   };
 
   // Reset form when data changes
   useEffect(() => {
+    syncingFromPropsRef.current = true;
     reset(data);
     setCifContent(getCifString(data?.cif));
-    setCifFileName('');
+    setCifFileName(data?.cif ? 'Embedded CIF data' : '');
+
+    const timeoutId = window.setTimeout(() => {
+      syncingFromPropsRef.current = false;
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [data, reset]);
 
   // Watch for changes to trigger unsaved state and auto-save
   const hasChanges = isDirty || cifContent !== getCifString(data?.cif);
+  const saveIfChanged = useCallback(() => {
+    if (!hasChanges || syncingFromPropsRef.current) return;
+
+    onUnsavedChange();
+    onSave(mergeCifData(getValues()));
+  }, [getValues, hasChanges, mergeCifData, onSave, onUnsavedChange]);
+
   useEffect(() => {
-    if (hasChanges) {
-      onUnsavedChange();
+    if (hasChanges && !syncingFromPropsRef.current) {
       // Auto-save after a short delay
       const timeoutId = setTimeout(() => {
-        const formData = getValues();
-        const cifStr = typeof cifContent === 'string' ? cifContent.trim() : '';
-        if (cifStr && cifStr !== '[Structured CIF Data]') {
-          formData.cif = cifContent;
-        } else if (data?.cif && typeof data.cif !== 'string') {
-          // Keep structured CIF if it exists
-          formData.cif = data.cif;
-        }
-        onSave(formData);
+        saveIfChanged();
       }, 500);
-      
+
       return () => clearTimeout(timeoutId);
     }
-  }, [hasChanges, onUnsavedChange, onSave, getValues, cifContent]);
+  }, [hasChanges, saveIfChanged]);
 
   const handleCifFileLoad = (content: string, filename: string) => {
     setCifContent(content);
@@ -110,7 +126,16 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6"
+      onBlurCapture={(event) => {
+        const related = event.relatedTarget as HTMLElement | null;
+        if (!related || !event.currentTarget.contains(related)) {
+          setTimeout(() => saveIfChanged(), 0);
+        }
+      }}
+    >
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
@@ -143,7 +168,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
               <Label htmlFor="commonName">Common Name *</Label>
               <Input
                 id="commonName"
-                {...register('commonName', { 
+                {...register('commonName', {
                   required: 'Common name is required',
                   minLength: {
                     value: 2,
@@ -179,8 +204,8 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
               <Label htmlFor="color">Color *</Label>
               <Input
                 id="color"
-                {...register('color', { 
-                  required: 'Color is required' 
+                {...register('color', {
+                  required: 'Color is required'
                 })}
               />
               {formErrors.color && (
@@ -297,13 +322,21 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>CIF File Upload</Label>
-            <CIFFileUpload 
+            <CIFFileUpload
               onFileLoad={handleCifFileLoad}
-              currentFileName={cifFileName}
+              currentFileName={cifFileName || (cifContent ? 'Embedded CIF data' : '')}
             />
             <p className="text-xs text-muted-foreground">
               Upload a Crystallographic Information File (.cif) containing the crystal structure
             </p>
+            <div className={`flex items-center gap-2 text-xs ${cifContent ? 'text-green-700' : 'text-muted-foreground'}`}>
+              {cifContent ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+              <span>
+                {cifContent
+                  ? 'CIF data attached for MPIF export'
+                  : 'No CIF data attached yet'}
+              </span>
+            </div>
             {cifContent && (
               <div className="bg-muted/50 p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">Structure Preview:</p>
@@ -336,4 +369,4 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
       </div>
     </form>
   );
-} 
+}

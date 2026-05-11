@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SynthesisGeneral } from '@/types/mpif';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { EditableSelect } from '../ui/EditableSelect';
 import { cn } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
@@ -60,6 +60,13 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
     onSave(formData);
   };
 
+  const saveIfDirty = useCallback(() => {
+    if (!isDirty) return;
+
+    onUnsavedChange();
+    onSave(getValues());
+  }, [getValues, isDirty, onSave, onUnsavedChange]);
+
   // Reset form when data changes
   useEffect(() => {
     reset(data);
@@ -71,15 +78,24 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
       onUnsavedChange();
       // Auto-save after a short delay
       const timeoutId = setTimeout(() => {
-        onSave(getValues());
+        saveIfDirty();
       }, 500);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isDirty, onUnsavedChange, onSave, getValues]);
+  }, [isDirty, saveIfDirty]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6"
+      onBlurCapture={(event) => {
+        const related = event.relatedTarget as HTMLElement | null;
+        if (!related || !event.currentTarget.contains(related)) {
+          setTimeout(() => saveIfDirty(), 0);
+        }
+      }}
+    >
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>

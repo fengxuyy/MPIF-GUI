@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MPIFMetadata } from '@/types/mpif';
 import { EditableSelect } from '../ui/EditableSelect';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
 
@@ -54,6 +54,13 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
     onSave(formData);
   };
 
+  const saveIfDirty = useCallback(() => {
+    if (!isDirty) return;
+
+    onUnsavedChange();
+    onSave(getValues());
+  }, [getValues, isDirty, onSave, onUnsavedChange]);
+
   // Reset form when data changes
   useEffect(() => {
     reset(data);
@@ -65,15 +72,24 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
       onUnsavedChange();
       // Auto-save after a short delay
       const timeoutId = setTimeout(() => {
-        onSave(getValues());
+        saveIfDirty();
       }, 500);
-      
+
       return () => clearTimeout(timeoutId);
     }
-  }, [isDirty, onUnsavedChange, onSave, getValues]);
+  }, [isDirty, saveIfDirty]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6"
+      onBlurCapture={(event) => {
+        const related = event.relatedTarget as HTMLElement | null;
+        if (!related || !event.currentTarget.contains(related)) {
+          setTimeout(() => saveIfDirty(), 0);
+        }
+      }}
+    >
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
@@ -88,7 +104,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
               <Label htmlFor="dataName">Data Name *</Label>
               <Input
                 id="dataName"
-                {...register('dataName', { 
+                {...register('dataName', {
                   required: 'Data name is required',
                   pattern: {
                     value: /^[A-Za-z0-9_-]+$/,
@@ -170,7 +186,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
               <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
-                {...register('name', { 
+                {...register('name', {
                   required: 'Author name is required',
                   minLength: {
                     value: 2,
@@ -189,7 +205,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
               <Input
                 id="email"
                 type="email"
-                {...register('email', { 
+                {...register('email', {
                   required: 'Email is required',
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -248,4 +264,4 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
       </div>
     </form>
   );
-} 
+}

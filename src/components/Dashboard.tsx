@@ -1,22 +1,24 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FileText, 
-  Package, 
+import {
+  FileText,
+  Package,
   Beaker,
-  Settings, 
+  Settings,
   Download,
   AlertTriangle,
+  CheckCircle,
   Database,
   Columns,
   ChevronDown,
   BookOpen,
   Plus,
-  FileUp
+  FileUp,
+  Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -84,6 +86,7 @@ export function Dashboard({ className }: DashboardProps) {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFileName, setExportFileName] = useState('');
   const [exportFormat, setExportFormat] = useState<'mpif' | 'json'>('mpif');
+  const [draftMessage, setDraftMessage] = useState('');
   const {
     mpifData,
     dashboard,
@@ -95,7 +98,8 @@ export function Dashboard({ className }: DashboardProps) {
     updateSection,
     createNewMPIF,
     clearUnsavedChanges,
-    setColumnLayout
+    setColumnLayout,
+    saveDraft
   } = useMPIFStore();
 
   // Redirect to home page if no MPIF data is loaded (on refresh)
@@ -194,11 +198,47 @@ export function Dashboard({ className }: DashboardProps) {
     }
   };
 
+  const flushAndSaveDraft = (afterSave?: () => void) => {
+    (document.activeElement as HTMLElement)?.blur();
+
+    window.setTimeout(() => {
+      saveDraft();
+      setDraftMessage('Draft saved');
+      window.setTimeout(() => setDraftMessage(''), 2500);
+      afterSave?.();
+    }, 700);
+  };
+
+  const handleSaveDraft = () => {
+    flushAndSaveDraft();
+  };
+
+  const handleDocumentationNavigation = () => {
+    if (dashboard.hasUnsavedChanges) {
+      if (!window.confirm('Save a draft before opening Documentation?')) {
+        return;
+      }
+      flushAndSaveDraft(() => navigate('/documentation'));
+      return;
+    }
+
+    navigate('/documentation');
+  };
+
+  const handleDocumentationNewTab = () => {
+    if (dashboard.hasUnsavedChanges) {
+      flushAndSaveDraft(() => window.open('/documentation', '_blank'));
+      return;
+    }
+
+    window.open('/documentation', '_blank');
+  };
+
   const handleExportClick = () => {
     const currentFileName = fileState.fileName || 'untitled';
     // Remove .mpif extension if present for the input field
-    const fileNameWithoutExt = currentFileName.endsWith('.mpif') 
-      ? currentFileName.slice(0, -5) 
+    const fileNameWithoutExt = currentFileName.endsWith('.mpif')
+      ? currentFileName.slice(0, -5)
       : currentFileName;
     setExportFileName(fileNameWithoutExt);
     setExportFormat('mpif');
@@ -216,16 +256,16 @@ export function Dashboard({ className }: DashboardProps) {
 
   const handleExport = () => {
     (document.activeElement as HTMLElement)?.blur();
-    
+
     setTimeout(() => {
       try {
         if (exportFormat === 'json') {
           // Export as backend-compatible JSON
           if (!mpifData) throw new Error('No data to export');
-          
+
           const jsonContent = JSON.stringify(mpifData, null, 2);
           const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.json` : 'untitled.json';
-          
+
           const blob = new Blob([jsonContent], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -239,7 +279,7 @@ export function Dashboard({ className }: DashboardProps) {
           // Export as MPIF
           const content = exportMPIF();
           const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.mpif` : 'untitled.mpif';
-          
+
           const blob = new Blob([content], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -250,7 +290,7 @@ export function Dashboard({ className }: DashboardProps) {
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
         }
-        
+
         // Clear unsaved changes flag after successful export
         clearUnsavedChanges();
         setExportDialogOpen(false);
@@ -258,7 +298,7 @@ export function Dashboard({ className }: DashboardProps) {
         console.error('Export failed:', error);
         // TODO: Show user-friendly error notification
       }
-    }, 100); // Give a moment for the blur to trigger the save
+    }, 700); // Give debounced form autosave a moment to flush before exporting
   };
 
 
@@ -302,7 +342,7 @@ export function Dashboard({ className }: DashboardProps) {
       return (
       <div {...getRootProps()} className={cn('flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden', className)}>
         <input {...getInputProps()} />
-        
+
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-4 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
@@ -319,7 +359,7 @@ export function Dashboard({ className }: DashboardProps) {
               const Icon = section.icon;
               const isActive = dashboard.currentSection === section.id;
               const hasErrors = validation.errors.some((error: any) => error.section === section.id);
-              
+
               return (
                 <button
                   key={section.id}
@@ -356,11 +396,11 @@ export function Dashboard({ className }: DashboardProps) {
                 </button>
               );
             })}
-            
+
             {/* Documentation Link */}
             <div className="pt-4 border-t border-gray-200">
               <button
-                onClick={() => navigate('/documentation')}
+                onClick={handleDocumentationNavigation}
                 className={cn(
                   'w-full flex items-center px-3 py-3 rounded-lg text-left transition-all duration-300',
                   'hover:bg-accent hover:text-accent-foreground text-gray-600',
@@ -395,7 +435,7 @@ export function Dashboard({ className }: DashboardProps) {
                  </p>
                </div>
              </div>
-             
+
              {/* Right Side - Navigation */}
              <div className="flex items-center space-x-6">
                {/* File Status - Moved to a more subtle position */}
@@ -408,21 +448,28 @@ export function Dashboard({ className }: DashboardProps) {
                  ) : (
                    <span className="text-gray-500">No file loaded</span>
                  )}
-                 
+
                  {dashboard.hasUnsavedChanges && (
                    <div className="flex items-center space-x-1 text-amber-600">
                      <AlertTriangle className="h-3 w-3" />
                      <span className="text-xs">Unsaved changes</span>
                    </div>
                  )}
-                 
+
+                 {draftMessage && (
+                   <div className="flex items-center space-x-1 text-green-700">
+                     <CheckCircle className="h-3 w-3" />
+                     <span className="text-xs">{draftMessage}</span>
+                   </div>
+                 )}
+
                  {!validation.isValid && (
                    <div className="flex items-center space-x-1 text-red-600">
                      <AlertTriangle className="h-3 w-3" />
                      <span className="text-xs">{validation.errors.length} incomplete fields</span>
                    </div>
                  )}
-                 
+
                  {fileState.lastSaved && (
                    <span className="text-xs text-gray-500">
                      Last saved: {fileState.lastSaved.toLocaleTimeString()}
@@ -433,9 +480,9 @@ export function Dashboard({ className }: DashboardProps) {
                {/* Navigation Items */}
                <div className="flex items-center space-x-1">
                  {/* Home Button */}
-                 <Button 
-                   variant="ghost" 
-                   size="sm" 
+                 <Button
+                   variant="ghost"
+                   size="sm"
                    onClick={handleGoHome}
                    className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
                  >
@@ -445,8 +492,8 @@ export function Dashboard({ className }: DashboardProps) {
                  {/* Actions Dropdown */}
                  <DropdownMenu>
                    <DropdownMenuTrigger asChild>
-                     <Button 
-                       variant="ghost" 
+                     <Button
+                       variant="ghost"
                        size="sm"
                        className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
                      >
@@ -455,21 +502,29 @@ export function Dashboard({ className }: DashboardProps) {
                      </Button>
                    </DropdownMenuTrigger>
                    <DropdownMenuContent align="start" className="w-56 bg-white/95 backdrop-blur-md border border-gray-200/50 shadow-xl">
-                     <DropdownMenuItem 
+                     <DropdownMenuItem
                        onClick={handleCreateNewMPIF}
                        className="text-gray-700 hover:bg-gray-50 cursor-pointer"
                      >
                        <Plus className="h-4 w-4 mr-3" />
                        Create New File
                      </DropdownMenuItem>
-                     <DropdownMenuItem 
+                     <DropdownMenuItem
                        onClick={handleUploadClick}
                        className="text-gray-700 hover:bg-gray-50 cursor-pointer"
                      >
                        <FileUp className="h-4 w-4 mr-3" />
                        Upload File
                      </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
+                      onClick={handleSaveDraft}
+                      disabled={!mpifData}
+                      className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Save className="h-4 w-4 mr-3" />
+                      Save Draft
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onClick={handleExportClick}
                       disabled={!mpifData}
                       className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -477,7 +532,7 @@ export function Dashboard({ className }: DashboardProps) {
                       <Download className="h-4 w-4 mr-3" />
                       Export MPIF
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={handleExportJSONClick}
                       disabled={!mpifData}
                       className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -485,7 +540,7 @@ export function Dashboard({ className }: DashboardProps) {
                       <Download className="h-4 w-4 mr-3" />
                       Export JSON
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
                     >
@@ -496,10 +551,10 @@ export function Dashboard({ className }: DashboardProps) {
                  </DropdownMenu>
 
                  {/* Documentation Button */}
-                 <Button 
-                   variant="ghost" 
-                   size="sm" 
-                   onClick={() => window.open('/documentation', '_blank')}
+                 <Button
+                   variant="ghost"
+                   size="sm"
+                   onClick={handleDocumentationNewTab}
                    className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
                  >
                    Documentation
@@ -524,7 +579,7 @@ export function Dashboard({ className }: DashboardProps) {
                 {exportFormat === 'json' ? 'Export Backend JSON' : 'Export MPIF File'}
               </DialogTitle>
               <DialogDescription>
-                {exportFormat === 'json' 
+                {exportFormat === 'json'
                   ? 'Enter a filename for your JSON export (compatible with Python backend)'
                   : 'Enter a name for your MPIF file. The .mpif extension will be added automatically.'}
               </DialogDescription>
@@ -573,4 +628,4 @@ export function Dashboard({ className }: DashboardProps) {
   );
 }
 
-export default Dashboard; 
+export default Dashboard;

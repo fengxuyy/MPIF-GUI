@@ -1,13 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Loader2, AlertCircle, Plus, FileUp, Github } from 'lucide-react';
+import { Loader2, AlertCircle, Plus, FileUp, Github, FolderOpen } from 'lucide-react';
 
 interface IntroPageProps {
   onCreate: () => void;
   onFileUpload: (content: string, fileName: string) => void;
+  onLoadDraft?: () => void;
+  draftInfo?: { fileName?: string; savedAt: string } | null;
 }
 
-const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
+const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload, onLoadDraft, draftInfo }) => {
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -88,7 +90,7 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
         </div>
 
         {/* Action Cards */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12 max-w-4xl w-full">
+        <div className={`grid gap-8 mb-12 w-full ${draftInfo ? 'md:grid-cols-3 max-w-6xl' : 'md:grid-cols-2 max-w-4xl'}`}>
           {/* Upload Card */}
           <div 
             className="group relative cursor-pointer"
@@ -136,6 +138,31 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload }) => {
               </p>
             </div>
           </div>
+
+          {draftInfo && onLoadDraft && (
+            <div
+              className="group relative cursor-pointer"
+              onClick={uploadStatus === 'loading' ? undefined : onLoadDraft}
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+              <div className="relative bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-200">
+                <div className="flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-xl mb-6">
+                  <FolderOpen className="w-8 h-8 text-emerald-600" />
+                </div>
+
+                <h3 className="text-2xl font-bold text-slate-800 mb-4">
+                  Continue Saved Draft
+                </h3>
+
+                <p className="text-slate-600 mb-2 leading-relaxed">
+                  {draftInfo.fileName || 'Browser draft'}
+                </p>
+                <p className="text-sm text-slate-500">
+                  Saved {new Date(draftInfo.savedAt).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
 
