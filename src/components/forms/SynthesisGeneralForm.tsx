@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SynthesisGeneral } from '@/types/mpif';
 import { useCallback, useEffect } from 'react';
 import { EditableSelect } from '../ui/EditableSelect';
+import { DecimalInput } from '../ui/DecimalInput';
 import { cn } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
 
@@ -280,15 +281,19 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="productAmount">Product Amount</Label>
-              <Input
-                id="productAmount"
-                type="number"
-                step="0.001"
-                {...register('productAmount', {
-                  valueAsNumber: true,
-                  min: { value: 0.001, message: 'Product amount must be positive' }
-                })}
-                className={cn(hasValidationError('productAmount') && "border-red-500 ring-red-500")}
+              <Controller
+                name="productAmount"
+                control={control}
+                rules={{ min: { value: 0, message: 'Product amount must be positive' } }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="productAmount"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    className={cn(hasValidationError('productAmount') && "border-red-500 ring-red-500")}
+                  />
+                )}
               />
               {formErrors.productAmount && (
                 <p className="text-sm text-red-600">{formErrors.productAmount.message}</p>

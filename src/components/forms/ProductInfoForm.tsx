@@ -6,6 +6,7 @@ import { ProductInfo } from '@/types/mpif';
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { CIFFileUpload } from '../ui/CIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
+import { DecimalInput } from '../ui/DecimalInput';
 import { cn } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
 import { AlertCircle, CheckCircle } from 'lucide-react';
@@ -244,17 +245,18 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
 
             <div className="space-y-2">
               <Label htmlFor="formulaWeight">Formula Weight (g/mol)</Label>
-              <Input
-                id="formulaWeight"
-                type="number"
-                step="0.01"
-                {...register('formulaWeight', {
-                  valueAsNumber: true,
-                  min: {
-                    value: 0,
-                    message: 'Formula weight must be positive'
-                  }
-                })}
+              <Controller
+                name="formulaWeight"
+                control={control}
+                rules={{ min: { value: 0, message: 'Formula weight must be positive' } }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="formulaWeight"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {formErrors.formulaWeight && (
                 <p className="text-sm text-red-600">{formErrors.formulaWeight.message}</p>

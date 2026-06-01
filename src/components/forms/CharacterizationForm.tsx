@@ -7,6 +7,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { DataVisualization } from '../DataVisualization';
 import { AIFFileUpload } from '../ui/AIFFileUpload';
 import { EditableSelect } from '../ui/EditableSelect';
+import { DecimalInput } from '../ui/DecimalInput';
 import { useMPIFStore } from '@/store/mpifStore';
 import { parsePXRDData, parseTGAData } from '@/utils/parsing';
 import { AlertCircle, CheckCircle } from 'lucide-react';
@@ -189,15 +190,19 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
 
             <div className="space-y-2">
               <Label htmlFor="pxrd.wavelength">Wavelength (Å)</Label>
-              <Input
-                id="pxrd.wavelength"
-                type="number"
-                step="0.0001"
-                {...register('pxrd.wavelength', {
-                  valueAsNumber: true,
-                  min: { value: 0, message: 'Wavelength must be positive' }
-                })}
-                placeholder="1.5418"
+              <Controller
+                name="pxrd.wavelength"
+                control={control}
+                rules={{ min: { value: 0, message: 'Wavelength must be positive' } }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="pxrd.wavelength"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder="1.5418"
+                  />
+                )}
               />
               {errors.pxrd?.wavelength && (
                 <p className="text-sm text-red-600">{errors.pxrd.wavelength.message}</p>

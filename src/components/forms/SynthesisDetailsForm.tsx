@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SynthesisDetails } from '@/types/mpif';
 import { Plus, Trash2 } from 'lucide-react';
 import { EditableSelect } from '../ui/EditableSelect';
+import { DecimalInput } from '../ui/DecimalInput';
 import { useEffect, useRef, useCallback } from 'react';
 import { cn, isEqual } from '@/lib/utils';
 import { useMPIFStore } from '@/store/mpifStore';
@@ -178,10 +179,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
 
                 <div className="space-y-2">
                   <Label htmlFor={`substrates.${index}.molarity`}>Molarity</Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    {...register(`substrates.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
+                  <Controller
+                    name={`substrates.${index}.molarity`}
+                    control={control}
+                    rules={{ min: { value: 0, message: 'Must be positive' } }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
 
@@ -205,15 +213,21 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`substrates.${index}.amount`}>Amount *</Label>
-                  <Input
-                    type="number"
-                    step="0.001"
-                    {...register(`substrates.${index}.amount`, {
+                  <Controller
+                    name={`substrates.${index}.amount`}
+                    control={control}
+                    rules={{
                       required: 'Amount is required',
-                      valueAsNumber: true,
                       min: { value: 0, message: 'Amount must be positive' }
-                    })}
-                    className={cn(hasValidationError(`substrates[${index}].amount`) && "border-red-500 ring-red-500")}
+                    }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        className={cn(hasValidationError(`substrates[${index}].amount`) && "border-red-500 ring-red-500")}
+                      />
+                    )}
                   />
                   {formErrors.substrates?.[index]?.amount && (
                     <p className="text-sm text-red-600">{formErrors.substrates[index]?.amount?.message}</p>
@@ -331,10 +345,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
 
                 <div className="space-y-2">
                   <Label htmlFor={`solvents.${index}.molarity`}>Molarity</Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    {...register(`solvents.${index}.molarity`, { valueAsNumber: true, min: { value: 0, message: 'Must be positive' } })}
+                  <Controller
+                    name={`solvents.${index}.molarity`}
+                    control={control}
+                    rules={{ min: { value: 0, message: 'Must be positive' } }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
 
@@ -358,15 +379,21 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`solvents.${index}.amount`}>Amount *</Label>
-                  <Input
-                    type="number"
-                    step="0.001"
-                    {...register(`solvents.${index}.amount`, {
+                  <Controller
+                    name={`solvents.${index}.amount`}
+                    control={control}
+                    rules={{
                       required: 'Amount is required',
-                      valueAsNumber: true,
                       min: { value: 0, message: 'Amount must be positive' }
-                    })}
-                    className={cn(hasValidationError(`solvents[${index}].amount`) && "border-red-500 ring-red-500")}
+                    }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        className={cn(hasValidationError(`solvents[${index}].amount`) && "border-red-500 ring-red-500")}
+                      />
+                    )}
                   />
                 </div>
 
@@ -491,14 +518,20 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
 
                 <div className="space-y-2">
                   <Label htmlFor={`vessels.${index}.volume`}>Volume *</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    {...register(`vessels.${index}.volume`, {
+                  <Controller
+                    name={`vessels.${index}.volume`}
+                    control={control}
+                    rules={{
                       required: 'Volume is required',
-                      valueAsNumber: true,
                       min: { value: 0, message: 'Volume must be positive' }
-                    })}
+                    }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
 
