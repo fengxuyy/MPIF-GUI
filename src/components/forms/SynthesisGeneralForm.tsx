@@ -109,15 +109,19 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="labTemperature">Lab Temperature (°C)</Label>
-              <Input
-                id="labTemperature"
-                type="number"
-                step="0.1"
-                {...register('labTemperature', {
-                  valueAsNumber: true,
-                  min: { value: -273.15, message: 'Temperature must be above absolute zero' }
-                })}
-                className={cn(hasValidationError('labTemperature') && "border-red-500 ring-red-500")}
+              <Controller
+                name="labTemperature"
+                control={control}
+                rules={{ min: { value: -273.15, message: 'Temperature must be above absolute zero' } }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="labTemperature"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    className={cn(hasValidationError('labTemperature') && "border-red-500 ring-red-500")}
+                  />
+                )}
               />
               {formErrors.labTemperature && (
                 <p className="text-sm text-red-600">{formErrors.labTemperature.message}</p>
@@ -126,16 +130,22 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
 
             <div className="space-y-2">
               <Label htmlFor="labHumidity">Lab Humidity (%)</Label>
-              <Input
-                id="labHumidity"
-                type="number"
-                step="1"
-                {...register('labHumidity', {
-                  valueAsNumber: true,
+              <Controller
+                name="labHumidity"
+                control={control}
+                rules={{
                   min: { value: 0, message: 'Humidity must be between 0 and 100%' },
                   max: { value: 100, message: 'Humidity must be between 0 and 100%' }
-                })}
-                className={cn(hasValidationError('labHumidity') && "border-red-500 ring-red-500")}
+                }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="labHumidity"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    className={cn(hasValidationError('labHumidity') && "border-red-500 ring-red-500")}
+                  />
+                )}
               />
               {formErrors.labHumidity && (
                 <p className="text-sm text-red-600">{formErrors.labHumidity.message}</p>
@@ -179,13 +189,17 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
 
             <div className="space-y-2">
               <Label htmlFor="reactionTemperature">Reaction Temperature (°C)</Label>
-              <Input
-                id="reactionTemperature"
-                type="number"
-                step="0.1"
-                {...register('reactionTemperature', {
-                  valueAsNumber: true
-                })}
+              <Controller
+                name="reactionTemperature"
+                control={control}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="reactionTemperature"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
             </div>
 
@@ -221,15 +235,19 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="reactionTime">Reaction Time</Label>
-              <Input
-                id="reactionTime"
-                type="number"
-                step="0.1"
-                {...register('reactionTime', {
-                  valueAsNumber: true,
-                  min: { value: 0.01, message: 'Reaction time must be positive' }
-                })}
-                className={cn(hasValidationError('reactionTime') && "border-red-500 ring-red-500")}
+              <Controller
+                name="reactionTime"
+                control={control}
+                rules={{ min: { value: 0.01, message: 'Reaction time must be positive' } }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="reactionTime"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    className={cn(hasValidationError('reactionTime') && "border-red-500 ring-red-500")}
+                  />
+                )}
               />
               {formErrors.reactionTime && (
                 <p className="text-sm text-red-600">{formErrors.reactionTime.message}</p>
@@ -316,15 +334,21 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
 
             <div className="space-y-2">
               <Label htmlFor="productYield">Product Yield (%)</Label>
-              <Input
-                id="productYield"
-                type="number"
-                step="0.1"
-                {...register('productYield', {
-                  valueAsNumber: true,
+              <Controller
+                name="productYield"
+                control={control}
+                rules={{
                   min: { value: 0, message: 'Yield must be positive' },
                   max: { value: 100, message: 'Yield cannot exceed 100%' }
-                })}
+                }}
+                render={({ field }) => (
+                  <DecimalInput
+                    id="productYield"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
               {formErrors.productYield && (
                 <p className="text-sm text-red-600">{formErrors.productYield.message}</p>

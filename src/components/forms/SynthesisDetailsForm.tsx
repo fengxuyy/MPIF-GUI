@@ -265,12 +265,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`substrates.${index}.purity`}>Purity (%)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    {...register(`substrates.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
+                  <Controller
+                    name={`substrates.${index}.purity`}
+                    control={control}
+                    rules={{ min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
 
@@ -428,12 +433,17 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`solvents.${index}.purity`}>Purity (%)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    {...register(`solvents.${index}.purity`, { valueAsNumber: true, min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } })}
+                  <Controller
+                    name={`solvents.${index}.purity`}
+                    control={control}
+                    rules={{ min: { value: 0, message: '>= 0' }, max: { value: 100, message: '<= 100' } }}
+                    render={({ field }) => (
+                      <DecimalInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
                   />
                 </div>
 
