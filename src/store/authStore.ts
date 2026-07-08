@@ -132,7 +132,7 @@ async function fetchOrcidPerson(orcid: string, accessToken: string): Promise<{ n
 // Store
 // ---------------------------------------------------------------------------
 
-export const useAuthStore = create<AuthStore>()((set, get) => ({
+export const useAuthStore = create<AuthStore>()((set, _get) => ({
   user: loadStoredUser(),
   isLoading: false,
   error: null,

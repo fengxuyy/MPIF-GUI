@@ -57,12 +57,12 @@ export function EditableSelect({ options, value, onChange, ...props }: EditableS
         className="w-full"
       />
       {showOptions && filteredOptions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 max-h-60 overflow-auto">
+        <ul className="absolute z-10 w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg mt-1 max-h-60 overflow-auto text-zinc-900 dark:text-zinc-100">
           {filteredOptions.map((option) => (
             <li
               key={option}
               onClick={() => handleOptionClick(option)}
-              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+              className="px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:text-purple-900 dark:hover:text-purple-100"
             >
               {option}
             </li>

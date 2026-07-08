@@ -7,7 +7,6 @@ import {
   Beaker,
   Settings,
   Download,
-  AlertTriangle,
   CheckCircle,
   Database,
   Columns,
@@ -16,7 +15,11 @@ import {
   Plus,
   FileUp,
   Save,
-  LogOut
+  LogOut,
+  Sun,
+  Moon,
+  Home,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +27,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -44,6 +48,8 @@ import { CharacterizationForm } from './forms/CharacterizationForm';
 import { MPIFData } from '@/types/mpif';
 import { useMPIFStore } from '@/store/mpifStore';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore';
+import { savePublishedFile } from '@/store/publishedFilesStore';
 
 interface DashboardProps {
   className?: string;
@@ -54,34 +60,64 @@ const sidebarSections = [
     id: 'metadata',
     label: 'Metadata',
     icon: FileText,
-    description: 'File information and audit details'
+    description: 'File audit details & attribution'
   },
   {
     id: 'productInfo',
-    label: 'Product Information',
+    label: 'Product Info',
     icon: Package,
-    description: 'Material properties and characteristics'
+    description: 'Material properties & specs'
   },
   {
     id: 'synthesisGeneral',
     label: 'Synthesis General',
     icon: Beaker,
-    description: 'Reaction conditions and parameters'
+    description: 'Reaction conditions & params'
   },
   {
     id: 'synthesisDetails',
     label: 'Synthesis Details',
     icon: Settings,
-    description: 'Reagents, equipment, and procedures'
+    description: 'Reagents, equip & procedure'
   },
   {
     id: 'characterization',
     label: 'Characterization',
     icon: Database,
-    description: 'Analytical data and measurements'
+    description: 'Analytical measurements'
   }
 ];
 
+const isSectionUnfilled = (section: string, data: any): boolean => {
+  if (!data || !data[section]) return true;
+  const secData = data[section];
+
+  if (section === 'metadata') {
+    return !secData.dataName && !secData.name && !secData.email && !secData.orcid && !secData.address && !secData.phone && !secData.publicationDOI && !secData.procedureStatus;
+  }
+  if (section === 'productInfo') {
+    return !secData.commonName && !secData.casNumber && !secData.type && !secData.ccdcNumber && !secData.systematicName && !secData.formula && !secData.state && !secData.color;
+  }
+  if (section === 'synthesisGeneral') {
+    return secData.labTemperature === undefined && secData.labHumidity === undefined && !secData.reactionType && secData.reactionTemperature === undefined && !secData.temperatureController && secData.reactionTime === undefined && !secData.reactionAtmosphere && !secData.reactionContainer && !secData.reactionNote && secData.productAmount === undefined && secData.productYield === undefined && !secData.scale && !secData.safetyNote;
+  }
+  if (section === 'synthesisDetails') {
+    return (!secData.substrates || secData.substrates.length === 0) &&
+           (!secData.solvents || secData.solvents.length === 0) &&
+           (!secData.vessels || secData.vessels.length === 0) &&
+           (!secData.hardware || secData.hardware.length === 0) &&
+           (!secData.steps || secData.steps.length === 0) &&
+           (!secData.procedureFull || !secData.procedureFull.trim());
+  }
+  if (section === 'characterization') {
+    return (!secData.pxrd || !secData.pxrd.data || secData.pxrd.data.length === 0) &&
+           (!secData.tga || !secData.tga.data || secData.tga.data.length === 0) &&
+           (!secData.aif || Object.keys(secData.aif).length === 0) &&
+           (!secData.cif || Object.keys(secData.cif).length === 0) &&
+           (!secData.nmr) && (!secData.ir) && (!secData.sem);
+  }
+  return false;
+};
 
 export function Dashboard({ className }: DashboardProps) {
   const navigate = useNavigate();
@@ -89,14 +125,20 @@ export function Dashboard({ className }: DashboardProps) {
   const [exportFileName, setExportFileName] = useState('');
   const [exportFormat, setExportFormat] = useState<'mpif' | 'json'>('mpif');
   const [draftMessage, setDraftMessage] = useState('');
+  const [floatingMessage, setFloatingMessage] = useState<string | null>(null);
+
   const orcidUser = useAuthStore((s) => s.user);
   const orcidLogout = useAuthStore((s) => s.logout);
+  const { theme, toggleTheme } = useThemeStore();
+
   const {
     mpifData,
     dashboard,
     fileState,
     validation,
     setCurrentSection,
+    setShowValidationErrors,
+    validateData,
     exportMPIF,
     loadMPIFFile,
     updateSection,
@@ -125,12 +167,10 @@ export function Dashboard({ className }: DashboardProps) {
         }
         await loadMPIFFile(content, file.name);
       } catch (error) {
-        // Error handling could be improved with user notification
         console.error('File upload error:', error);
       }
     } else {
-      // TODO: Show user-friendly error notification
-      console.error('Invalid file type. Please upload a .mpif file');
+      console.error('Invalid file type. Please upload an MPIF file');
     }
   }, [loadMPIFFile]);
 
@@ -159,6 +199,16 @@ export function Dashboard({ className }: DashboardProps) {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [dashboard.hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!floatingMessage) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setFloatingMessage(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [floatingMessage]);
 
   const handleCreateNewMPIF = () => {
     const performCreate = () => {
@@ -226,21 +276,10 @@ export function Dashboard({ className }: DashboardProps) {
       return;
     }
 
-    navigate('/documentation');
-  };
-
-  const handleDocumentationNewTab = () => {
-    if (dashboard.hasUnsavedChanges) {
-      flushAndSaveDraft(() => window.open('/documentation', '_blank'));
-      return;
-    }
-
-    window.open('/documentation', '_blank');
   };
 
   const handleExportClick = () => {
     const currentFileName = fileState.fileName || 'untitled';
-    // Remove .mpif extension if present for the input field
     const fileNameWithoutExt = currentFileName.endsWith('.mpif')
       ? currentFileName.slice(0, -5)
       : currentFileName;
@@ -251,7 +290,6 @@ export function Dashboard({ className }: DashboardProps) {
 
   const handleExportJSONClick = () => {
     const currentFileName = fileState.fileName || 'untitled';
-    // Remove extensions if present for the input field
     const fileNameWithoutExt = currentFileName.replace(/\.(mpif|json)$/, '');
     setExportFileName(fileNameWithoutExt);
     setExportFormat('json');
@@ -261,16 +299,28 @@ export function Dashboard({ className }: DashboardProps) {
   const handleExport = () => {
     (document.activeElement as HTMLElement)?.blur();
 
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
+        let exportedContent = '';
+        let finalFileName = '';
+
         if (exportFormat === 'json') {
-          // Export as backend-compatible JSON
           if (!mpifData) throw new Error('No data to export');
 
-          const jsonContent = JSON.stringify(mpifData, null, 2);
-          const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.json` : 'untitled.json';
+          const exportValidation = validateData();
+          const hasExportErrors = !exportValidation.isValid;
+          setShowValidationErrors(hasExportErrors);
 
-          const blob = new Blob([jsonContent], { type: 'application/json' });
+          if (hasExportErrors) {
+            setExportDialogOpen(false);
+            setFloatingMessage(`Required fields are missing. Please complete the highlighted fields before exporting (${exportValidation.errors.length} issue${exportValidation.errors.length === 1 ? '' : 's'}).`);
+            return;
+          }
+
+          exportedContent = JSON.stringify(mpifData, null, 2);
+          finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.json` : 'untitled.json';
+
+          const blob = new Blob([exportedContent], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -280,11 +330,10 @@ export function Dashboard({ className }: DashboardProps) {
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
         } else {
-          // Export as MPIF
-          const content = exportMPIF();
-          const finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.mpif` : 'untitled.mpif';
+          exportedContent = exportMPIF();
+          finalFileName = exportFileName.trim() ? `${exportFileName.trim()}.mpif` : 'untitled.mpif';
 
-          const blob = new Blob([content], { type: 'text/plain' });
+          const blob = new Blob([exportedContent], { type: 'text/plain' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -295,27 +344,59 @@ export function Dashboard({ className }: DashboardProps) {
           URL.revokeObjectURL(url);
         }
 
-        // Clear unsaved changes flag after successful export
         clearUnsavedChanges();
+        setShowValidationErrors(false);
+        setFloatingMessage(null);
         setExportDialogOpen(false);
+
+        if (mpifData && exportedContent && window.confirm('Is this file publishable and should it be saved to the database?')) {
+          if (!orcidUser) {
+            setFloatingMessage('Please connect your ORCID iD before saving publishable files to the database.');
+            return;
+          }
+
+          try {
+            await savePublishedFile({
+              fileName: finalFileName,
+              format: exportFormat,
+              content: exportedContent,
+              mpifData,
+              author: orcidUser,
+            });
+
+            setFloatingMessage('Publishable file saved to the database.');
+          } catch (saveError) {
+            console.error('Database save failed:', saveError);
+            setFloatingMessage('Export completed, but saving to the database failed. Please make sure the backend API is running.');
+          }
+        }
       } catch (error) {
         console.error('Export failed:', error);
-        // TODO: Show user-friendly error notification
-      }
-    }, 700); // Give debounced form autosave a moment to flush before exporting
-  };
+        setExportDialogOpen(false);
 
+        const message = error instanceof Error
+          ? error.message
+          : 'Required fields are missing. Please complete the highlighted fields before exporting.';
+
+        setFloatingMessage(
+          message.includes('validation errors')
+            ? 'Required fields are missing. Please complete the highlighted fields before exporting.'
+            : message
+        );
+      }
+    }, 700);
+  };
 
   const renderSectionForm = () => {
     if (!mpifData) return null;
 
-    const sectionErrors = validation.errors.filter(
-      (error: any) => error.section === dashboard.currentSection
-    );
+    const sectionErrors = dashboard.showValidationErrors
+      ? validation.errors.filter((error: any) => error.section === dashboard.currentSection)
+      : [];
 
     const commonProps = {
       onSave: (data: any) => updateSection(dashboard.currentSection as keyof MPIFData, data),
-      onUnsavedChange: () => {}, // This is handled by the store now
+      onUnsavedChange: () => {},
       errors: sectionErrors
     };
 
@@ -332,9 +413,9 @@ export function Dashboard({ className }: DashboardProps) {
         return <CharacterizationForm data={mpifData.characterization} {...commonProps} />;
       default:
         return (
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Form for {dashboard.currentSection} section will be implemented here.
+          <div className="p-8 glass-panel rounded-xl border border-zinc-200 dark:border-zinc-800 text-center">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">
+              Form for section [{dashboard.currentSection}] is under development.
             </p>
           </div>
         );
@@ -343,317 +424,302 @@ export function Dashboard({ className }: DashboardProps) {
 
   const currentSectionData = sidebarSections.find(s => s.id === dashboard.currentSection);
 
-      return (
-      <div {...getRootProps()} className={cn('flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden', className)}>
-        <input {...getInputProps()} />
+  return (
+    <div {...getRootProps()} className={cn('flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans overflow-hidden transition-colors duration-300 relative focus:outline-none', className)}>
+      <input {...getInputProps()} />
 
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-4 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute -top-4 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+      {floatingMessage && (
+        <div className="absolute top-4 left-1/2 z-50 -translate-x-1/2 pointer-events-none">
+          <div className="rounded-xl border border-amber-300/80 bg-amber-50/95 px-4 py-3 text-sm font-medium text-amber-950 shadow-lg backdrop-blur dark:border-amber-700/80 dark:bg-amber-950/90 dark:text-amber-100">
+            {floatingMessage}
+          </div>
         </div>
+      )}
 
-        {/* Sidebar */}
-        <div className="group relative w-16 hover:w-80 border-r bg-white/80 backdrop-blur-sm border-slate-200/50 flex flex-col transition-all duration-300 ease-in-out">
-        {/* Navigation - Centered */}
-        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-          <nav className="space-y-4 w-full">
+      {/* Subtle scientific dot grid background */}
+      <div className="absolute inset-0 intro-dot-grid pointer-events-none opacity-30"></div>
+
+      {/* Fixed-Width Scientific Sidebar */}
+      <aside className="relative z-20 w-64 border-r border-zinc-200 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md flex flex-col justify-between flex-shrink-0 transition-all">
+        <div>
+          {/* Brand Header */}
+          <div className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={handleGoHome}>
+              <img src="/icon.png" alt="MPIF Logo" className="w-7 h-7 rounded-lg object-contain" />
+              <span className="font-geist font-bold tracking-tight text-sm text-zinc-900 dark:text-white leading-tight">Material Preparation Information File</span>
+            </div>
+          </div>
+
+          {/* Section Navigation */}
+          <div className="p-3 space-y-1.5">
+            <div className="px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-semibold">
+              Schema Sections
+            </div>
             {sidebarSections.map((section) => {
               const Icon = section.icon;
               const isActive = dashboard.currentSection === section.id;
-              const hasErrors = validation.errors.some((error: any) => error.section === section.id);
+              const sectionErrorCount = dashboard.showValidationErrors
+                ? validation.errors.filter((e: any) => e.section === section.id).length
+                : 0;
 
               return (
                 <button
                   key={section.id}
                   onClick={() => setCurrentSection(section.id)}
                   className={cn(
-                    'w-full flex items-center px-3 py-3 rounded-lg text-left transition-all duration-300',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    isActive && 'bg-primary text-primary-foreground',
-                    hasErrors && !isActive && 'border-l-2 border-red-500',
-                    'group-hover:justify-start group-hover:items-start group-hover:space-x-3 justify-center'
+                    'w-full flex items-center justify-between px-3 py-3 rounded-lg text-left transition-all duration-200 ease-out group cursor-pointer border',
+                    isActive
+                      ? 'border-purple-300 bg-purple-300 text-purple-950 shadow-sm shadow-purple-500/15 dark:border-purple-500 dark:bg-purple-500 dark:text-zinc-950'
+                      : 'border-transparent text-zinc-700 hover:-translate-y-px hover:border-zinc-200 hover:bg-white hover:text-zinc-950 hover:shadow-sm dark:text-zinc-300 dark:hover:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-white font-medium'
                   )}
                 >
-                  <Icon className={cn(
-                    'h-5 w-5 flex-shrink-0 transition-colors group-hover:mt-0.5',
-                    hasErrors && !isActive && 'text-red-500'
-                  )} />
-                  <div className="flex-1 min-w-0 overflow-hidden transition-opacity duration-300 group-hover:opacity-100 opacity-0">
-                    <p className="text-sm font-medium whitespace-nowrap">{section.label}</p>
-                    <p className={cn(
-                      'text-xs whitespace-nowrap',
-                      isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                    )}>
-                      {section.description}
-                    </p>
-                    {hasErrors && (
-                      <p className={cn(
-                        'text-xs mt-1 whitespace-nowrap',
-                        isActive ? 'text-red-300' : 'text-red-500'
-                      )}>
-                        {validation.errors.filter((e: any) => e.section === section.id).length} incomplete fields
-                      </p>
-                    )}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className={cn('h-4 w-4 flex-shrink-0', isActive ? 'text-purple-950 dark:text-zinc-950' : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white')} />
+                    <div className="truncate">
+                      <div className="text-xs leading-tight truncate">{section.label}</div>
+                      <div className={cn('text-[10px] truncate mt-0.5 font-normal', isActive ? 'text-purple-900 dark:text-zinc-950/65' : 'text-zinc-400 dark:text-zinc-500')}>
+                        {section.description}
+                      </div>
+                    </div>
                   </div>
+
+                  {sectionErrorCount > 0 && (
+                    <span className={cn(
+                      'text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2 border',
+                      isActive
+                        ? 'bg-white/20 dark:bg-zinc-950/20 text-white dark:text-zinc-950 border-white/30 dark:border-zinc-950/30'
+                        : 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/60'
+                    )}>
+                      {sectionErrorCount}
+                    </span>
+                  )}
+                  {sectionErrorCount === 0 && !isActive && !isSectionUnfilled(section.id, mpifData) && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 opacity-80 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
+                  )}
                 </button>
               );
             })}
-
-            {/* Documentation Link */}
-            <div className="pt-4 border-t border-gray-200">
-              <button
-                onClick={handleDocumentationNavigation}
-                className={cn(
-                  'w-full flex items-center px-3 py-3 rounded-lg text-left transition-all duration-300',
-                  'hover:bg-accent hover:text-accent-foreground text-gray-600',
-                  'group-hover:justify-start group-hover:items-start group-hover:space-x-3 justify-center'
-                )}
-              >
-                <BookOpen className="h-5 w-5 flex-shrink-0 transition-colors group-hover:mt-0.5" />
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-                  <div className="font-medium text-sm whitespace-nowrap">Documentation</div>
-                  <div className="text-xs text-muted-foreground whitespace-nowrap">MPIF variable reference</div>
-                </div>
-              </button>
-            </div>
-          </nav>
-        </div>
-        </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-                 {/* Header */}
-         <div className="relative border-b bg-white/80 backdrop-blur-md px-6 py-4">
-           <div className="flex items-center justify-between">
-             {/* Left Side - Logo/Brand */}
-             <div className="flex items-center space-x-3">
-               <div>
-                 <h2 className="text-xl font-semibold text-gray-800 flex items-center space-x-2">
-                   {currentSectionData && <currentSectionData.icon className="h-5 w-5" />}
-                   <span>{currentSectionData?.label || 'Dashboard'}</span>
-                 </h2>
-                 <p className="text-sm text-gray-600">
-                   {currentSectionData?.description || 'Select a section to begin editing'}
-                 </p>
-               </div>
-             </div>
-
-             {/* Right Side - Navigation */}
-             <div className="flex items-center space-x-6">
-               {/* File Status - Moved to a more subtle position */}
-               <div className="flex items-center space-x-4 text-sm text-gray-600">
-                 {fileState.fileName ? (
-                   <div className="flex items-center space-x-2">
-                     <FileText className="h-4 w-4 text-blue-600" />
-                     <span className="font-medium">{fileState.fileName}</span>
-                   </div>
-                 ) : (
-                   <span className="text-gray-500">No file loaded</span>
-                 )}
-
-                 {dashboard.hasUnsavedChanges && (
-                   <div className="flex items-center space-x-1 text-amber-600">
-                     <AlertTriangle className="h-3 w-3" />
-                     <span className="text-xs">Unsaved changes</span>
-                   </div>
-                 )}
-
-                 {draftMessage && (
-                   <div className="flex items-center space-x-1 text-green-700">
-                     <CheckCircle className="h-3 w-3" />
-                     <span className="text-xs">{draftMessage}</span>
-                   </div>
-                 )}
-
-                 {!validation.isValid && (
-                   <div className="flex items-center space-x-1 text-red-600">
-                     <AlertTriangle className="h-3 w-3" />
-                     <span className="text-xs">{validation.errors.length} incomplete fields</span>
-                   </div>
-                 )}
-
-                 {fileState.lastSaved && (
-                   <span className="text-xs text-gray-500">
-                     Last saved: {fileState.lastSaved.toLocaleTimeString()}
-                   </span>
-                 )}
-               </div>
-
-               {/* Navigation Items */}
-               <div className="flex items-center space-x-1">
-                 {/* Home Button */}
-                 <Button
-                   variant="ghost"
-                   size="sm"
-                   onClick={handleGoHome}
-                   className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
-                 >
-                   Home
-                 </Button>
-
-                 {/* Actions Dropdown */}
-                 <DropdownMenu>
-                   <DropdownMenuTrigger asChild>
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
-                     >
-                       Actions
-                       <ChevronDown className="h-4 w-4 ml-1" />
-                     </Button>
-                   </DropdownMenuTrigger>
-                   <DropdownMenuContent align="start" className="w-56 bg-white/95 backdrop-blur-md border border-gray-200/50 shadow-xl">
-                     <DropdownMenuItem
-                       onClick={handleCreateNewMPIF}
-                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
-                     >
-                       <Plus className="h-4 w-4 mr-3" />
-                       Create New File
-                     </DropdownMenuItem>
-                     <DropdownMenuItem
-                       onClick={handleUploadClick}
-                       className="text-gray-700 hover:bg-gray-50 cursor-pointer"
-                     >
-                       <FileUp className="h-4 w-4 mr-3" />
-                       Upload File
-                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleSaveDraft}
-                      disabled={!mpifData}
-                      className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Save className="h-4 w-4 mr-3" />
-                      Save Draft
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleExportClick}
-                      disabled={!mpifData}
-                      className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Download className="h-4 w-4 mr-3" />
-                      Export MPIF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleExportJSONClick}
-                      disabled={!mpifData}
-                      className="text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Download className="h-4 w-4 mr-3" />
-                      Export JSON
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
-                      className="text-gray-700 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <Columns className="h-4 w-4 mr-3" />
-                      Column Switch
-                    </DropdownMenuItem>
-                   </DropdownMenuContent>
-                 </DropdownMenu>
-
-                  {/* Documentation Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDocumentationNewTab}
-                    className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
-                  >
-                    Documentation
-                  </Button>
-
-                  {/* User Chip */}
-                  {orcidUser && (
-                    <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full border border-slate-200 shadow-sm px-3 py-1.5 group">
-                      {/* Avatar */}
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                        style={{ backgroundColor: '#A6CE39' }}
-                      >
-                        {orcidUser.name
-                          ? orcidUser.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
-                          : 'OR'}
-                      </div>
-                      <div className="flex flex-col leading-tight">
-                        <span className="text-xs font-semibold text-slate-700 leading-none">{orcidUser.name || 'Researcher'}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{orcidUser.orcid}</span>
-                      </div>
-                      <button
-                        onClick={orcidLogout}
-                        title="Logout from ORCID"
-                        className="ml-1 p-1 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <LogOut className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-             </div>
-           </div>
-         </div>
-
-        {/* Content Area */}
-        <div className="relative flex-1 overflow-auto p-6 md:p-8">
-          <div className="mx-6 md:mx-8">
-            {renderSectionForm()}
           </div>
         </div>
 
-        {/* Export Dialog */}
-        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {exportFormat === 'json' ? 'Export Backend JSON' : 'Export MPIF File'}
-              </DialogTitle>
-              <DialogDescription>
-                {exportFormat === 'json'
-                  ? 'Enter a filename for your JSON export (compatible with Python backend)'
-                  : 'Enter a name for your MPIF file. The .mpif extension will be added automatically.'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="filename" className="text-right">
-                  Filename
-                </Label>
-                <Input
-                  id="filename"
-                  value={exportFileName}
-                  onChange={(e) => setExportFileName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && exportFileName.trim()) {
-                      handleExport();
-                    }
-                  }}
-                  className="col-span-3"
-                  placeholder="Enter filename"
-                  autoFocus
-                />
-              </div>
+        {/* Sidebar Footer / Quick Tools */}
+        <div className="p-3 border-t border-zinc-200 dark:border-zinc-800/80 space-y-1">
+          <button
+            onClick={handleGoHome}
+            className="w-full flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left text-xs font-medium text-zinc-600 transition-all duration-200 ease-out hover:-translate-y-px hover:border-zinc-200 hover:bg-white hover:text-zinc-900 hover:shadow-sm dark:text-zinc-400 dark:hover:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-white cursor-pointer"
+          >
+            <Home className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <span>Home Page</span>
+          </button>
+          <button
+            onClick={handleDocumentationNavigation}
+            className="w-full flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left text-xs font-medium text-zinc-600 transition-all duration-200 ease-out hover:-translate-y-px hover:border-zinc-200 hover:bg-white hover:text-zinc-900 hover:shadow-sm dark:text-zinc-400 dark:hover:border-zinc-800 dark:hover:bg-zinc-900 dark:hover:text-white cursor-pointer"
+          >
+            <BookOpen className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <span>Documentation</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Workspace Area */}
+      <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
+
+        {/* Top Navigation Header */}
+        <header className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-between flex-shrink-0">
+
+          {/* Active Section Info */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/50 flex items-center justify-center text-purple-500 dark:text-purple-400">
+              {currentSectionData && <currentSectionData.icon className="h-4 w-4" />}
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setExportDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleExport}
-                disabled={!exportFileName.trim()}
-              >
-                Export {exportFormat === 'json' ? '.json' : '.mpif'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <h1 className="font-geist font-bold text-sm sm:text-base text-zinc-900 dark:text-white leading-tight">
+                {currentSectionData?.label || 'Dashboard'}
+              </h1>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-none mt-0.5 hidden sm:block">
+                {currentSectionData?.description || 'Select a schema section to edit'}
+              </p>
+            </div>
+          </div>
+
+          {/* Right Action Tools */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+
+            {/* Document Status Indicator */}
+            <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 glass-panel rounded-full border border-zinc-200 dark:border-zinc-800/80 text-xs">
+              <FileText className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+              <span className="font-mono font-medium text-zinc-800 dark:text-zinc-200 max-w-[150px] truncate">
+                {fileState.fileName || 'untitled.mpif'}
+              </span>
+              <span className="text-zinc-300 dark:text-zinc-700">|</span>
+              {dashboard.hasUnsavedChanges ? (
+                <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  Unsaved
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  {draftMessage || 'Saved'}
+                </span>
+              )}
+            </div>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="rounded-lg border border-zinc-300 bg-white p-2.5 text-zinc-600 shadow-sm transition-all duration-200 ease-out hover:-translate-y-px hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white cursor-pointer"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+
+            {/* Layout Columns Toggle */}
+            <button
+              onClick={() => setColumnLayout((dashboard as any).columnLayout === 'double' ? 'single' : 'double')}
+              className="hidden sm:flex rounded-lg border border-zinc-300 bg-white p-2.5 text-zinc-600 shadow-sm transition-all duration-200 ease-out hover:-translate-y-px hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white cursor-pointer"
+              title="Toggle Grid Columns Layout"
+            >
+              <Columns className="h-4 w-4" />
+            </button>
+
+            {/* Save Draft Action */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveDraft}
+              disabled={!mpifData}
+              className="h-9 px-3.5"
+            >
+              <Save className="h-3.5 w-3.5 mr-1.5 text-purple-500 dark:text-purple-400" />
+              <span>Save</span>
+            </Button>
+
+            {/* Actions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-9 px-3.5"
+                >
+                  <span>Actions</span>
+                  <ChevronDown className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1.5 shadow-xl font-sans">
+                <DropdownMenuItem onClick={handleCreateNewMPIF} className="rounded-lg text-xs py-2 px-3 cursor-pointer text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800">
+                  <Plus className="h-3.5 w-3.5 mr-2.5 text-purple-500 dark:text-purple-400" />
+                  New File
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleUploadClick} className="rounded-lg text-xs py-2 px-3 cursor-pointer text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800">
+                  <FileUp className="h-3.5 w-3.5 mr-2.5 text-purple-500 dark:text-purple-400" />
+                  Upload MPIF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+                <DropdownMenuItem onClick={handleExportClick} disabled={!mpifData} className="rounded-lg text-xs py-2 px-3 cursor-pointer text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800 font-medium">
+                  <Download className="h-3.5 w-3.5 mr-2.5 text-emerald-600 dark:text-emerald-400" />
+                  Export MPIF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportJSONClick} disabled={!mpifData} className="rounded-lg text-xs py-2 px-3 cursor-pointer text-zinc-700 dark:text-zinc-300 focus:bg-zinc-100 dark:focus:bg-zinc-800 font-medium">
+                  <Download className="h-3.5 w-3.5 mr-2.5 text-emerald-600 dark:text-emerald-400" />
+                  Export JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Researcher Chip */}
+            {orcidUser && (
+              <div className="hidden sm:flex items-center gap-2 glass-panel rounded-full border border-zinc-200 dark:border-zinc-800/80 px-2.5 py-1 text-xs group">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-zinc-950 text-[10px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: '#A6CE39' }}
+                >
+                  {orcidUser.name
+                    ? orcidUser.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+                    : 'OR'}
+                </div>
+                <span className="font-medium text-zinc-800 dark:text-zinc-200 text-xs max-w-[100px] truncate">{orcidUser.name || 'Researcher'}</span>
+                <button
+                  onClick={orcidLogout}
+                  title="Disconnect ORCID"
+                  className="p-1 rounded-full text-zinc-400 hover:text-red-500 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+          </div>
+
+        </header>
+
+        {/* Scrollable Form Content Area */}
+        <main className="flex-1 overflow-y-auto p-6 sm:p-10">
+          <div className="max-w-5xl mx-auto pb-20">
+            {/* Active Form Rendering */}
+            <div className="transition-all duration-300">
+              {renderSectionForm()}
+            </div>
+          </div>
+        </main>
 
       </div>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 font-sans">
+          <DialogHeader>
+            <DialogTitle className="font-geist text-lg font-bold text-zinc-900 dark:text-white">
+              {exportFormat === 'json' ? 'Export JSON' : 'Export MPIF'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
+              {exportFormat === 'json'
+                ? 'Enter filename for JSON export (compatible with Python materials analysis backend)'
+                : 'Enter filename for MPIF export. The .mpif extension will be appended automatically.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="filename" className="text-zinc-700 dark:text-zinc-300">
+                Document Filename
+              </Label>
+              <Input
+                id="filename"
+                value={exportFileName}
+                onChange={(e) => setExportFileName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && exportFileName.trim()) {
+                    handleExport();
+                  }
+                }}
+                placeholder="e.g. Specimen_B4C_Sintered"
+                autoFocus
+                className="font-mono text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setExportDialogOpen(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleExport}
+              disabled={!exportFileName.trim()}
+              className="text-xs"
+            >
+              Confirm Export ({exportFormat === 'json' ? '.json' : '.mpif'})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

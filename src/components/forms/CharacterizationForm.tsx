@@ -1,5 +1,4 @@
 import { useForm, Controller } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Characterization } from '@/types/mpif';
@@ -40,7 +39,6 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
   const syncingFromPropsRef = useRef(false);
 
   const {
-    register,
     handleSubmit,
     watch,
     control,
@@ -219,13 +217,13 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
               id="pxrdData"
               value={pxrdDataText}
               onChange={(e) => setPxrdDataText(e.target.value)}
-              className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+              className="flex min-h-[200px] w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-50 font-mono shadow-sm transition-all"
               placeholder="2-Theta    Intensity&#10;5.0        1234&#10;5.1        1345&#10;5.2        1567&#10;...&#10;&#10;Format: Two columns separated by spaces, tabs, or commas"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Enter 2θ (degrees) and intensity values, one per line
             </p>
-            <div className={`flex items-center gap-2 text-xs ${parsedPxrdData.length > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-2 text-xs font-medium ${parsedPxrdData.length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
               {parsedPxrdData.length > 0 ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
               <span>
                 {parsedPxrdData.length > 0
@@ -252,13 +250,13 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
               id="tgaData"
               value={tgaDataText}
               onChange={(e) => setTgaDataText(e.target.value)}
-              className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+              className="flex min-h-[200px] w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-50 font-mono shadow-sm transition-all"
               placeholder="Temperature(°C)    Weight(%)&#10;25                  100.0&#10;50                  99.8&#10;100                 98.5&#10;...&#10;&#10;Format: Two columns separated by spaces, tabs, or commas"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Enter temperature (°C) and weight percentage values, one per line
             </p>
-            <div className={`flex items-center gap-2 text-xs ${parsedTgaData.length > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-2 text-xs font-medium ${parsedTgaData.length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
               {parsedTgaData.length > 0 ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
               <span>
                 {parsedTgaData.length > 0
@@ -289,20 +287,20 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
               Upload an Adsorption Information Format (.aif) file containing gas adsorption data
             </p>
             {aifContent && (
-              <div className="bg-muted/50 p-3 rounded-lg">
+              <div className="bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 p-3 rounded-xl text-zinc-800 dark:text-zinc-200">
                 <p className="text-xs font-medium mb-1">File Content Preview:</p>
                 {typeof aifContent === 'string' ? (
                   <>
-                    <p className="text-xs font-mono text-muted-foreground">
+                    <p className="text-xs font-mono text-zinc-600 dark:text-zinc-300">
                       {aifContent.split('\n').slice(0, 3).join('\n')}
                       {aifContent.split('\n').length > 3 && '\n...'}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                       {aifContent.split('\n').length} lines, {aifContent.length} characters
                     </p>
                   </>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Structured AIF data loaded
                   </p>
                 )}
@@ -326,11 +324,11 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
             {pxrdDataText.trim() && (
               <div>
                 <h4 className="text-sm font-medium mb-2">PXRD Data Points:</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   {parsedPxrdData.length} data points parsed
                 </p>
                 {parsedPxrdData.length > 0 && (
-                  <div className="bg-muted/50 p-3 rounded-lg mt-2">
+                  <div className="bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 p-3 rounded-xl mt-2 text-zinc-800 dark:text-zinc-200">
                     <p className="text-xs font-mono">
                       Range: 2θ = {Math.min(...parsedPxrdData.map(p => p.twoTheta)).toFixed(2)}° - {Math.max(...parsedPxrdData.map(p => p.twoTheta)).toFixed(2)}°
                     </p>
@@ -345,11 +343,11 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
             {tgaDataText.trim() && (
               <div>
                 <h4 className="text-sm font-medium mb-2">TGA Data Points:</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   {parsedTgaData.length} data points parsed
                 </p>
                 {parsedTgaData.length > 0 && (
-                  <div className="bg-muted/50 p-3 rounded-lg mt-2">
+                  <div className="bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 p-3 rounded-xl mt-2 text-zinc-800 dark:text-zinc-200">
                     <p className="text-xs font-mono">
                       Temperature: {Math.min(...parsedTgaData.map(p => p.temperature)).toFixed(0)}°C - {Math.max(...parsedTgaData.map(p => p.temperature)).toFixed(0)}°C
                     </p>

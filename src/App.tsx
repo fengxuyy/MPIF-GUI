@@ -1,11 +1,14 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
+import DatabasePage from './components/DatabasePage';
 import IntroPage from './components/IntroPage';
 import { MPIFDocumentation } from './components/MPIFDocumentation';
 import { OrcidCallback } from './components/OrcidCallback';
 import { useMPIFStore } from './store/mpifStore';
+import { useThemeStore } from './store/themeStore';
 
 function App() {
+  useThemeStore();
   return (
     <Router>
       <div className="App">
@@ -17,6 +20,10 @@ function App() {
           <Route
             path="/dashboard"
             element={<Dashboard />}
+          />
+          <Route
+            path="/database"
+            element={<DatabasePage />}
           />
           <Route
             path="/documentation"
@@ -59,10 +66,15 @@ function IntroPageWrapper() {
     }
   };
 
+  const handleOpenDatabase = () => {
+    navigate('/database');
+  };
+
   return (
     <IntroPage
       onCreate={handleCreate}
       onFileUpload={handleFileUploaded}
+      onOpenDatabase={handleOpenDatabase}
       onLoadDraft={handleLoadDraft}
       draftInfo={getDraftInfo()}
     />

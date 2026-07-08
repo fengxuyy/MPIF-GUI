@@ -81,14 +81,14 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
   const getStatusIcon = () => {
     switch (uploadStatus) {
       case 'loading':
-        return <Loader2 className="h-8 w-8 animate-spin text-blue-500" />;
+        return <Loader2 className="h-8 w-8 animate-spin text-purple-500 dark:text-purple-400" />;
       case 'success':
-        return <CheckCircle className="h-8 w-8 text-green-500" />;
+        return <CheckCircle className="h-8 w-8 text-emerald-500 dark:text-emerald-400" />;
       case 'error':
         return <XCircle className="h-8 w-8 text-red-500" />;
       default:
         if (fileName) {
-          return <CheckCircle className="h-8 w-8 text-green-500" />;
+          return <CheckCircle className="h-8 w-8 text-emerald-500 dark:text-emerald-400" />;
         }
         return <Atom className="h-8 w-8 text-muted-foreground" />;
     }
@@ -113,11 +113,11 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
   const getStatusColor = () => {
     switch (uploadStatus) {
       case 'loading':
-        return 'text-blue-600';
+        return 'text-purple-500 dark:text-purple-400';
       case 'success':
-        return 'text-green-600';
+        return 'text-emerald-600 dark:text-emerald-400';
       case 'error':
-        return 'text-red-600';
+        return 'text-red-600 dark:text-red-400';
       default:
         return fileName ? 'text-foreground' : 'text-muted-foreground';
     }
@@ -132,8 +132,8 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
         isDragActive && 'border-primary bg-primary/10 scale-105',
         isDragReject && 'border-red-500 bg-red-50 dark:bg-red-900/10',
         uploadStatus === 'error' && 'border-red-500 bg-red-50 dark:bg-red-900/10',
-        uploadStatus === 'success' && 'border-green-500 bg-green-50 dark:bg-green-900/10',
-        uploadStatus === 'loading' && 'border-blue-500 bg-blue-50 dark:bg-blue-900/10',
+        uploadStatus === 'success' && 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20',
+        uploadStatus === 'loading' && 'border-purple-500 bg-purple-50 dark:bg-purple-950/20',
         className
       )}
     >
@@ -163,7 +163,7 @@ export function CIFFileUpload({ onFileLoad, className, currentFileName }: CIFFil
       )}
 
       {uploadStatus === 'idle' && fileName && (
-        <p className="text-sm text-green-700">
+        <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
           This CIF will be embedded in the exported MPIF.
         </p>
       )}

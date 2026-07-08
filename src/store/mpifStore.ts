@@ -7,21 +7,22 @@ import { useAuthStore } from '@/store/authStore';
 interface MPIFStore {
   // Data state
   mpifData: MPIFData | null;
-  
+
   // UI state
   dashboard: DashboardState;
   fileState: FileState;
   validation: ValidationResult;
-  
+
   // Actions
   loadMPIFFile: (content: string, fileName: string) => Promise<void>;
   createNewMPIF: () => void;
   updateSection: (section: keyof MPIFData, data: any) => void;
-  
+
   // UI actions
   setCurrentSection: (section: string) => void;
   setColumnLayout: (mode: 'single' | 'double') => void;
-  
+  setShowValidationErrors: (show: boolean) => void;
+
   // File actions
   exportMPIF: () => string;
   saveDraft: () => void;
@@ -29,10 +30,10 @@ interface MPIFStore {
   getDraftInfo: () => { fileName?: string; savedAt: string } | null;
   resetData: () => void;
   clearUnsavedChanges: () => void;
-  
+
   // Validation
   validateData: () => ValidationResult;
-  
+
 }
 
 const DRAFT_STORAGE_KEY = 'mpif-gui:draft:v1';
@@ -125,6 +126,9 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   if (!data.metadata.creationDate) {
     errors.push({ field: 'creationDate', message: 'Creation date is required', section: 'metadata' });
   }
+  if (!data.metadata.procedureStatus) {
+    errors.push({ field: 'procedureStatus', message: 'Procedure status is required', section: 'metadata' });
+  }
 
   // Validate author details in metadata
   if (!data.metadata.name) {
@@ -140,6 +144,18 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   // Validate product info
   if (!data.productInfo.commonName) {
     errors.push({ field: 'commonName', message: 'Common name is required', section: 'productInfo' });
+  }
+  if (!data.productInfo.type) {
+    errors.push({ field: 'type', message: 'Material type is required', section: 'productInfo' });
+  }
+  if (!data.productInfo.state) {
+    errors.push({ field: 'state', message: 'Physical state is required', section: 'productInfo' });
+  }
+  if (!data.productInfo.color) {
+    errors.push({ field: 'color', message: 'Color is required', section: 'productInfo' });
+  }
+  if (!data.productInfo.handlingAtmosphere) {
+    errors.push({ field: 'handlingAtmosphere', message: 'Handling atmosphere is required', section: 'productInfo' });
   }
 
   // Validate synthesis general
@@ -158,24 +174,24 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   if (data.synthesisDetails && data.synthesisDetails.substrates) {
     data.synthesisDetails.substrates.forEach((substrate, index) => {
       if (!substrate.name || substrate.name.trim() === '') {
-        errors.push({ 
-          field: `substrates[${index}].name`, 
-          message: 'Substrate name is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `substrates[${index}].name`,
+          message: 'Substrate name is required',
+          section: 'synthesisDetails'
         });
       }
       if (substrate.amount === undefined || substrate.amount <= 0) {
-        errors.push({ 
-          field: `substrates[${index}].amount`, 
-          message: 'Substrate amount is required and must be positive', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `substrates[${index}].amount`,
+          message: 'Substrate amount is required and must be positive',
+          section: 'synthesisDetails'
         });
       }
       if (!substrate.amountUnit || substrate.amountUnit.trim() === '') {
-        errors.push({ 
-          field: `substrates[${index}].amountUnit`, 
-          message: 'Substrate amount unit is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `substrates[${index}].amountUnit`,
+          message: 'Substrate amount unit is required',
+          section: 'synthesisDetails'
         });
       }
     });
@@ -185,24 +201,24 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   if (data.synthesisDetails && data.synthesisDetails.solvents) {
     data.synthesisDetails.solvents.forEach((solvent, index) => {
       if (!solvent.name || solvent.name.trim() === '') {
-        errors.push({ 
-          field: `solvents[${index}].name`, 
-          message: 'Solvent name is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `solvents[${index}].name`,
+          message: 'Solvent name is required',
+          section: 'synthesisDetails'
         });
       }
       if (solvent.amount === undefined || solvent.amount <= 0) {
-        errors.push({ 
-          field: `solvents[${index}].amount`, 
-          message: 'Solvent amount is required and must be positive', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `solvents[${index}].amount`,
+          message: 'Solvent amount is required and must be positive',
+          section: 'synthesisDetails'
         });
       }
       if (!solvent.amountUnit || solvent.amountUnit.trim() === '') {
-        errors.push({ 
-          field: `solvents[${index}].amountUnit`, 
-          message: 'Solvent amount unit is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `solvents[${index}].amountUnit`,
+          message: 'Solvent amount unit is required',
+          section: 'synthesisDetails'
         });
       }
     });
@@ -212,17 +228,38 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   if (data.synthesisDetails && data.synthesisDetails.vessels) {
     data.synthesisDetails.vessels.forEach((vessel, index) => {
       if (!vessel.material || vessel.material.trim() === '') {
-        errors.push({ 
-          field: `vessels[${index}].material`, 
-          message: 'Vessel material is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `vessels[${index}].material`,
+          message: 'Vessel material is required',
+          section: 'synthesisDetails'
         });
       }
       if (!vessel.type || vessel.type.trim() === '') {
-        errors.push({ 
-          field: `vessels[${index}].type`, 
-          message: 'Vessel type is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `vessels[${index}].type`,
+          message: 'Vessel type is required',
+          section: 'synthesisDetails'
+        });
+      }
+      if (vessel.volume === undefined || vessel.volume <= 0) {
+        errors.push({
+          field: `vessels[${index}].volume`,
+          message: 'Vessel volume is required and must be positive',
+          section: 'synthesisDetails'
+        });
+      }
+      if (!vessel.volumeUnit || vessel.volumeUnit.trim() === '') {
+        errors.push({
+          field: `vessels[${index}].volumeUnit`,
+          message: 'Vessel volume unit is required',
+          section: 'synthesisDetails'
+        });
+      }
+      if (!vessel.purpose || vessel.purpose.trim() === '') {
+        errors.push({
+          field: `vessels[${index}].purpose`,
+          message: 'Vessel purpose is required',
+          section: 'synthesisDetails'
         });
       }
     });
@@ -231,11 +268,45 @@ const validateMPIFData = (data: MPIFData): ValidationResult => {
   // Validate synthesis details - hardware
   if (data.synthesisDetails && data.synthesisDetails.hardware) {
     data.synthesisDetails.hardware.forEach((hardware, index) => {
+      if (!hardware.purpose || hardware.purpose.trim() === '') {
+        errors.push({
+          field: `hardware[${index}].purpose`,
+          message: 'Hardware purpose is required',
+          section: 'synthesisDetails'
+        });
+      }
       if (!hardware.generalName || hardware.generalName.trim() === '') {
-        errors.push({ 
-          field: `hardware[${index}].generalName`, 
-          message: 'Hardware name is required', 
-          section: 'synthesisDetails' 
+        errors.push({
+          field: `hardware[${index}].generalName`,
+          message: 'Hardware name is required',
+          section: 'synthesisDetails'
+        });
+      }
+    });
+  }
+
+  // Validate synthesis details - steps
+  if (data.synthesisDetails && data.synthesisDetails.steps) {
+    data.synthesisDetails.steps.forEach((step, index) => {
+      if (!step.type || step.type.trim() === '') {
+        errors.push({
+          field: `steps[${index}].type`,
+          message: 'Step type is required',
+          section: 'synthesisDetails'
+        });
+      }
+      if (!step.atmosphere || step.atmosphere.trim() === '') {
+        errors.push({
+          field: `steps[${index}].atmosphere`,
+          message: 'Step atmosphere is required',
+          section: 'synthesisDetails'
+        });
+      }
+      if (!step.detail || step.detail.trim() === '') {
+        errors.push({
+          field: `steps[${index}].detail`,
+          message: 'Step details are required',
+          section: 'synthesisDetails'
         });
       }
     });
@@ -255,6 +326,7 @@ export const useMPIFStore = create<MPIFStore>()(
       currentSection: 'metadata',
       isEditing: false,
       hasUnsavedChanges: false,
+      showValidationErrors: false,
       columnLayout: 'single',
     },
     fileState: {
@@ -271,10 +343,10 @@ export const useMPIFStore = create<MPIFStore>()(
     // Actions
     loadMPIFFile: async (content: string, fileName: string) => {
       set({ fileState: { ...get().fileState, isLoading: true, error: undefined } });
-      
+
       try {
         const data = parseMPIF(content);
-        
+
         set({
           mpifData: data,
           fileState: {
@@ -283,14 +355,12 @@ export const useMPIFStore = create<MPIFStore>()(
             isLoading: false,
             error: undefined
           },
-          validation: {
-            isValid: true,
-            errors: []
-          },
+          validation: validateMPIFData(data),
           dashboard: {
             ...get().dashboard,
             hasUnsavedChanges: false,
-            isEditing: true
+            isEditing: true,
+            showValidationErrors: false
           }
         });
       } catch (error) {
@@ -321,14 +391,12 @@ export const useMPIFStore = create<MPIFStore>()(
           isLoading: false,
           error: undefined
         },
-        validation: {
-          isValid: true,
-          errors: []
-        },
+        validation: validateMPIFData(newMPIFData),
         dashboard: {
           ...get().dashboard,
           hasUnsavedChanges: true,
           isEditing: true,
+          showValidationErrors: false,
           currentSection: 'metadata'
         }
       });
@@ -341,9 +409,12 @@ export const useMPIFStore = create<MPIFStore>()(
         ...currentData,
         [section]: { ...currentData[section], ...data }
       };
-      
+
+      const validation = validateMPIFData(updatedData);
+
       set({
         mpifData: updatedData,
+        validation,
         dashboard: { ...get().dashboard, hasUnsavedChanges: true }
       });
     },
@@ -361,11 +432,17 @@ export const useMPIFStore = create<MPIFStore>()(
       });
     },
 
+    setShowValidationErrors: (show: boolean) => {
+      set({
+        dashboard: { ...get().dashboard, showValidationErrors: show }
+      });
+    },
+
 
     exportMPIF: () => {
       const data = get().mpifData;
       if (!data) throw new Error('No data to export');
-      
+
       // Create a copy of the data and ensure generatorVersion is set to 1.0
       const exportData = {
         ...data,
@@ -374,15 +451,21 @@ export const useMPIFStore = create<MPIFStore>()(
           generatorVersion: '1.0'
         }
       };
-      
+
       // Validate before export
       const validation = validateMPIFData(exportData);
-      set({ validation });
-      
+      set({
+        validation,
+        dashboard: {
+          ...get().dashboard,
+          showValidationErrors: !validation.isValid
+        }
+      });
+
       if (!validation.isValid) {
         throw new Error(`Cannot export: ${validation.errors.length} validation errors found. Please fix the incomplete fields first.`);
       }
-      
+
       return stringifyMPIF(exportData);
     },
 
@@ -423,15 +506,13 @@ export const useMPIFStore = create<MPIFStore>()(
           isLoading: false,
           error: undefined
         },
-        validation: {
-          isValid: true,
-          errors: []
-        },
+        validation: validateMPIFData(draft.mpifData),
         dashboard: {
           ...get().dashboard,
           currentSection: draft.currentSection || 'metadata',
           hasUnsavedChanges: false,
-          isEditing: true
+          isEditing: true,
+          showValidationErrors: false
         }
       });
 
@@ -464,7 +545,8 @@ export const useMPIFStore = create<MPIFStore>()(
         dashboard: {
           ...get().dashboard,
           hasUnsavedChanges: false,
-          isEditing: false
+          isEditing: false,
+          showValidationErrors: false
         }
       });
     },
@@ -487,7 +569,7 @@ export const useMPIFStore = create<MPIFStore>()(
       if (!data) {
         return { isValid: false, errors: [{ field: 'data', message: 'No data to validate', section: 'general' }] };
       }
-      
+
       const validation = validateMPIFData(data);
       set({ validation });
       return validation;

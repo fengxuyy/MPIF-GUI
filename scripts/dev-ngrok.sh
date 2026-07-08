@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# dev-ngrok.sh — Start MPIF-GUI with an ngrok HTTPS tunnel
+# dev-ngrok.sh — Start MPIF-GUI frontend + backend with an ngrok HTTPS tunnel
 #
 # Usage:
 #   ./dev-ngrok.sh
@@ -16,8 +16,12 @@
 set -euo pipefail
 
 VITE_PORT=5173
+API_PORT=8000
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"   # project root (one level up from scripts/)
 ENV_FILE="$SCRIPT_DIR/.env.local"
+API_LOG="/tmp/mpif-api.log"
+VITE_LOG="/tmp/mpif-vite.log"
+NGROK_LOG="/tmp/mpif-ngrok.log"
 
 # ---- Colour helpers ----
 GREEN="\033[0;32m"; YELLOW="\033[1;33m"; RED="\033[0;31m"; RESET="\033[0m"; BOLD="\033[1m"
@@ -112,19 +116,49 @@ else
 fi
 
 # ============================================================
-# 3. KILL ANY EXISTING PROCESS ON PORT 5173
+# 3. KILL ANY EXISTING PROCESS ON APP PORTS
 # ============================================================
 info "Freeing port $VITE_PORT..."
 lsof -ti tcp:$VITE_PORT | xargs kill -9 2>/dev/null || true
+info "Freeing port $API_PORT..."
+lsof -ti tcp:$API_PORT | xargs kill -9 2>/dev/null || true
 sleep 0.5
 ok "Port $VITE_PORT is free"
+ok "Port $API_PORT is free"
 
 # ============================================================
-# 4. START VITE DEV SERVER
+# 4. START BACKEND DATABASE API
+# ============================================================
+info "Starting backend database API on http://127.0.0.1:$API_PORT ..."
+cd "$SCRIPT_DIR"
+npm run dev:api &>"$API_LOG" &
+API_PID=$!
+
+for i in {1..25}; do
+  sleep 1
+  if curl -sf "http://127.0.0.1:$API_PORT/health" -o /dev/null 2>/dev/null; then
+    ok "Backend API ready (PID $API_PID)"
+    break
+  fi
+  if ! kill -0 $API_PID 2>/dev/null; then
+    error "Backend API exited unexpectedly. See $API_LOG"
+    cat "$API_LOG"
+    exit 1
+  fi
+  if [[ $i -eq 25 ]]; then
+    error "Backend API failed to start. See $API_LOG"
+    cat "$API_LOG"
+    kill $API_PID 2>/dev/null || true
+    exit 1
+  fi
+done
+
+# ============================================================
+# 5. START VITE DEV SERVER
 # ============================================================
 info "Starting Vite dev server on http://localhost:$VITE_PORT ..."
 cd "$SCRIPT_DIR"
-npm run dev &>/tmp/mpif-vite.log &
+npm run dev &>"$VITE_LOG" &
 VITE_PID=$!
 
 for i in {1..20}; do
@@ -134,15 +168,15 @@ for i in {1..20}; do
     break
   fi
   if [[ $i -eq 20 ]]; then
-    error "Vite failed to start. See /tmp/mpif-vite.log"
-    cat /tmp/mpif-vite.log
-    kill $VITE_PID 2>/dev/null || true
+    error "Vite failed to start. See $VITE_LOG"
+    cat "$VITE_LOG"
+    kill $VITE_PID $API_PID 2>/dev/null || true
     exit 1
   fi
 done
 
 # ============================================================
-# 5. STOP EXISTING NGROK + DELETE STALE CLOUD ENDPOINT
+# 6. STOP EXISTING NGROK + DELETE STALE CLOUD ENDPOINT
 # ============================================================
 info "Stopping any existing ngrok processes..."
 pkill -x ngrok 2>/dev/null || killall ngrok 2>/dev/null || true
@@ -189,19 +223,19 @@ elif [[ -n "$STATIC_DOMAIN" && -z "$NGROK_API_KEY" ]]; then
 fi
 
 # ============================================================
-# 6. START NGROK
+# 7. START NGROK
 # ============================================================
 if [[ -n "$STATIC_DOMAIN" ]]; then
   info "Starting ngrok with static domain: ${BOLD}$STATIC_DOMAIN${RESET} ..."
-  ngrok http "$VITE_PORT" --domain="$STATIC_DOMAIN" --log=stdout > /tmp/mpif-ngrok.log 2>&1 &
+  ngrok http "$VITE_PORT" --domain="$STATIC_DOMAIN" --log=stdout > "$NGROK_LOG" 2>&1 &
 else
   info "Starting ngrok (random URL — set NGROK_DOMAIN in .env.local for a permanent URL) ..."
-  ngrok http "$VITE_PORT" --log=stdout > /tmp/mpif-ngrok.log 2>&1 &
+  ngrok http "$VITE_PORT" --log=stdout > "$NGROK_LOG" 2>&1 &
 fi
 NGROK_PID=$!
 
 # ============================================================
-# 7. EXTRACT PUBLIC URL
+# 8. EXTRACT PUBLIC URL
 # ============================================================
 info "Waiting for ngrok tunnel to open..."
 NGROK_URL=""
@@ -210,8 +244,8 @@ for i in {1..30}; do
   # Bail early if ngrok process already died
   if ! kill -0 $NGROK_PID 2>/dev/null; then
     error "ngrok process exited unexpectedly. Log:"
-    cat /tmp/mpif-ngrok.log | tail -20
-    kill $VITE_PID 2>/dev/null || true
+    cat "$NGROK_LOG" | tail -20
+    kill $VITE_PID $API_PID 2>/dev/null || true
     exit 1
   fi
   NGROK_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null \
@@ -229,9 +263,9 @@ except: pass
 done
 
 if [[ -z "$NGROK_URL" ]]; then
-  error "Could not get ngrok public URL. See /tmp/mpif-ngrok.log:"
-  cat /tmp/mpif-ngrok.log | tail -20
-  kill $VITE_PID $NGROK_PID 2>/dev/null || true
+  error "Could not get ngrok public URL. See $NGROK_LOG:"
+  cat "$NGROK_LOG" | tail -20
+  kill $VITE_PID $API_PID $NGROK_PID 2>/dev/null || true
   exit 1
 fi
 
@@ -239,7 +273,7 @@ REDIRECT_URI="${NGROK_URL}/orcid-callback"
 ok "Tunnel live: $NGROK_URL"
 
 # ============================================================
-# 8. PATCH .env.local
+# 9. PATCH .env.local
 # ============================================================
 info "Patching .env.local..."
 sed -i.bak "s|^VITE_ORCID_REDIRECT_URI=.*|VITE_ORCID_REDIRECT_URI=${REDIRECT_URI}|" "$ENV_FILE"
@@ -248,7 +282,7 @@ rm -f "${ENV_FILE}.bak"
 ok ".env.local updated — Vite will hot-reload in a moment"
 
 # ============================================================
-# 9. PRINT SUMMARY
+# 10. PRINT SUMMARY
 # ============================================================
 echo ""
 echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
@@ -257,6 +291,9 @@ echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -e "  ${BOLD}Open the app at:${RESET}   $NGROK_URL"
 echo -e "  ${BOLD}Redirect URI:${RESET}      $REDIRECT_URI"
+echo -e "  ${BOLD}Frontend local:${RESET}    http://localhost:$VITE_PORT"
+echo -e "  ${BOLD}Backend local:${RESET}     http://127.0.0.1:$API_PORT"
+echo -e "  ${BOLD}Database file:${RESET}     ${MPIF_DB_PATH:-$SCRIPT_DIR/backend/mpif_publish.sqlite3}"
 echo ""
 echo -e "  ${YELLOW}${BOLD}ACTION REQUIRED — register the redirect URI in ORCID:${RESET}"
 echo    "  1. Go to → https://orcid.org/developer-tools"
@@ -269,14 +306,28 @@ echo ""
 echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
 
 # ============================================================
-# 10. KEEP RUNNING — CLEANUP ON EXIT
+# 11. KEEP RUNNING — CLEANUP ON EXIT
 # ============================================================
 cleanup() {
   echo ""
-  info "Shutting down Vite and ngrok..."
-  kill $VITE_PID $NGROK_PID 2>/dev/null || true
+  info "Shutting down backend API, Vite, and ngrok..."
+  kill $API_PID $VITE_PID $NGROK_PID 2>/dev/null || true
   exit 0
 }
 trap cleanup INT TERM
 
-wait $VITE_PID
+while true; do
+  sleep 2
+  if ! kill -0 $API_PID 2>/dev/null; then
+    warn "Backend API stopped unexpectedly. See $API_LOG"
+    cleanup
+  fi
+  if ! kill -0 $VITE_PID 2>/dev/null; then
+    warn "Vite stopped unexpectedly. See $VITE_LOG"
+    cleanup
+  fi
+  if ! kill -0 $NGROK_PID 2>/dev/null; then
+    warn "ngrok stopped unexpectedly. See $NGROK_LOG"
+    cleanup
+  fi
+done

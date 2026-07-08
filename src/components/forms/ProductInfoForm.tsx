@@ -157,6 +157,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
                   <EditableSelect
                     {...field}
                     options={['porous framework material', 'inorganic', 'organic', 'composite']}
+                    className={cn(hasValidationError('type') && "border-red-500 ring-red-500")}
                   />
                 )}
               />
@@ -193,6 +194,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
                   <EditableSelect
                     {...field}
                     options={['solid', 'liquid', 'gas', 'suspension']}
+                    className={cn(hasValidationError('state') && "border-red-500 ring-red-500")}
                   />
                 )}
               />
@@ -208,6 +210,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
                 {...register('color', {
                   required: 'Color is required'
                 })}
+                className={cn(hasValidationError('color') && "border-red-500 ring-red-500")}
               />
               {formErrors.color && (
                 <p className="text-sm text-red-600">{formErrors.color.message}</p>
@@ -224,6 +227,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
                   <EditableSelect
                     {...field}
                     options={['air', 'inert', 'water-free', 'oxygen-free']}
+                    className={cn(hasValidationError('handlingAtmosphere') && "border-red-500 ring-red-500")}
                   />
                 )}
               />
@@ -331,7 +335,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
             <p className="text-xs text-muted-foreground">
               Upload a Crystallographic Information File (.cif) containing the crystal structure
             </p>
-            <div className={`flex items-center gap-2 text-xs ${cifContent ? 'text-green-700' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-2 text-xs font-medium ${cifContent ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
               {cifContent ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
               <span>
                 {cifContent
@@ -340,20 +344,20 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
               </span>
             </div>
             {cifContent && (
-              <div className="bg-muted/50 p-3 rounded-lg">
+              <div className="bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 p-3 rounded-xl text-zinc-800 dark:text-zinc-200">
                 <p className="text-xs font-medium mb-1">Structure Preview:</p>
                 {typeof cifContent === 'string' ? (
                   <>
-                    <p className="text-xs font-mono text-muted-foreground">
+                    <p className="text-xs font-mono text-zinc-600 dark:text-zinc-300">
                       {cifContent.split('\n').slice(0, 5).join('\n')}
                       {cifContent.split('\n').length > 5 && '\n...'}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                       {cifContent.split('\n').length} lines, {cifContent.length} characters
                     </p>
                   </>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Structured CIF data loaded
                   </p>
                 )}

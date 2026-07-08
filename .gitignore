@@ -11,6 +11,13 @@ dist/
 build/
 *.local
 
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Local backend database
+backend/*.sqlite3
+
 # Environment variables
 .env
 .env.local

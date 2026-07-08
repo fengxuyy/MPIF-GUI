@@ -45,6 +45,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:api": "python -m uvicorn backend.database_api:app --reload --host 127.0.0.1 --port 8000",
     "dev:ngrok": "bash scripts/dev-ngrok.sh",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

@@ -42,15 +42,22 @@ cd ..
 ### 3. Start the Development Server
 
 ```bash
+# Start the backend database API
+npm run dev:api
+
 # Start the frontend development server
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+The application will be available at `http://localhost:5173`. The backend API runs at `http://127.0.0.1:8000`, and Vite proxies `/api` requests to it.
+
+Published files are stored in a SQLite database at `backend/mpif_publish.sqlite3` by default. To use a different database file, set `MPIF_DB_PATH` before starting the API.
 
 ### 4. Available Scripts
 
 - `npm run dev` - Start development server
+- `npm run dev:api` - Start the backend database API
+- `npm run dev:ngrok` - Start the backend API, frontend, and ngrok tunnel together
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint

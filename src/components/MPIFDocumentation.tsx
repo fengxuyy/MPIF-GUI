@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  BookOpen, 
-  FileText, 
-  Package, 
-  Beaker, 
-  Settings, 
+import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import {
+  BookOpen,
+  FileText,
+  Package,
+  Beaker,
+  Settings,
   Database,
   Search,
   ChevronDown,
   ChevronRight,
   Info,
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Moon,
+  ArrowLeft
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useThemeStore } from '@/store/themeStore';
 
 interface MPIFVariable {
   name: string;
@@ -818,6 +823,8 @@ const mpifSections: MPIFSection[] = [
 ];
 
 export function MPIFDocumentation() {
+  const navigate = useNavigate();
+  const { theme, toggleTheme } = useThemeStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['metadata']));
   const [expandedVariables, setExpandedVariables] = useState<Set<string>>(new Set());
@@ -844,7 +851,7 @@ export function MPIFDocumentation() {
 
   const filteredSections = mpifSections.map(section => ({
     ...section,
-    variables: section.variables.filter(variable => 
+    variables: section.variables.filter(variable =>
       variable.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       variable.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       variable.dataType.toLowerCase().includes(searchTerm.toLowerCase())
@@ -852,192 +859,219 @@ export function MPIFDocumentation() {
   })).filter(section => section.variables.length > 0 || searchTerm === '');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <BookOpen className="h-6 w-6 text-blue-600" />
-                <h1 className="text-2xl font-bold text-gray-900">MPIF Documentation</h1>
-              </div>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300 relative focus:outline-none">
+      {/* Background scientific dot grid */}
+      <div className="absolute inset-0 intro-dot-grid pointer-events-none opacity-30"></div>
+
+      {/* Top Header */}
+      <header className="relative z-10 border-b border-zinc-200 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-2 glass-panel rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              title="Return to Editor Dashboard"
+            >
+              <ArrowLeft className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <span className="hidden sm:inline">Editor</span>
+            </button>
+            <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800/50 flex items-center justify-center text-purple-500 dark:text-purple-400">
+              <BookOpen className="h-4 w-4" />
             </div>
-            
-            {/* Search */}
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search variables..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div>
+              <h1 className="font-geist text-lg sm:text-xl font-bold text-zinc-900 dark:text-white leading-tight">
+                Material Preparation Information File Specification
+              </h1>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Official variable reference & materials informatics dictionary
+              </p>
             </div>
           </div>
-          
-          <p className="text-gray-600 mt-2">
-            Comprehensive reference for all MPIF (Material Processing Information File) variables and their usage.
-          </p>
+
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+              <Input
+                placeholder="Search variables or data types..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 text-xs rounded-xl h-9 font-mono border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-900/90"
+              />
+            </div>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 glass-panel rounded-xl border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer flex-shrink-0"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Introduction */}
-        <Card className="mb-8 border-blue-200 bg-blue-50/50">
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Info className="h-5 w-5 text-blue-600" />
-              <CardTitle className="text-blue-900">About MPIF Format</CardTitle>
+      {/* Main Reference Content */}
+      <main className="relative z-10 max-w-5xl mx-auto px-6 py-10 space-y-8 pb-24">
+        {/* About Card */}
+        <div className="p-6 rounded-2xl glass-panel border border-purple-200 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/20 text-purple-950 dark:text-purple-100 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-3 font-geist text-base font-bold text-purple-900 dark:text-purple-200">
+            <Info className="h-5 w-5 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+            <span>About the Material Preparation Information File Standard</span>
+          </div>
+          <p className="text-xs sm:text-sm text-purple-800 dark:text-purple-300 leading-relaxed mb-5">
+            The Material Preparation Information File is engineered to capture structured, reproducible metadata for synthesis routes, characterization datasets, and crystalline properties across collaborative research teams.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-6 pt-4 border-t border-purple-200/60 dark:border-purple-800/40 text-xs">
+            <div className="space-y-2">
+              <h4 className="font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider text-[11px]">Core Features</h4>
+              <ul className="list-disc list-inside space-y-1 text-purple-800 dark:text-purple-300">
+                <li>Machine-readable dictionary for materials synthesis</li>
+                <li>Embedded raw datasets (PXRD, TGA, gas adsorption)</li>
+                <li>Complete equipment & reagent traceability</li>
+                <li>Standardized audit compliance & author metadata</li>
+              </ul>
             </div>
-          </CardHeader>
-          <CardContent className="text-blue-800">
-            <p className="mb-4">
-              The MPIF (Material Processing Information File) format is designed to capture comprehensive information 
-              about material synthesis procedures, including experimental conditions, reagents, equipment, and characterization data.
-            </p>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold mb-2">Key Features:</h4>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>Structured data format for reproducible synthesis</li>
-                  <li>Embedded characterization data (PXRD, TGA, adsorption)</li>
-                  <li>Detailed reagent and equipment information</li>
-                  <li>Step-by-step procedure documentation</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Data Sections:</h4>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>Metadata and author information</li>
-                  <li>Product properties and composition</li>
-                  <li>Synthesis conditions and parameters</li>
-                  <li>Detailed procedures and equipment</li>
-                  <li>Analytical characterization data</li>
-                </ul>
-              </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-purple-900 dark:text-purple-200 uppercase tracking-wider text-[11px]">Schema Hierarchy</h4>
+              <ul className="list-disc list-inside space-y-1 text-purple-800 dark:text-purple-300">
+                <li>Global Information & Audit Attribution</li>
+                <li>Product Chemical Specification & CIF linkage</li>
+                <li>Reaction Thermodynamics & Synthesis Parameters</li>
+                <li>Experimental Procedures & Equipment Log</li>
+                <li>Characterization Measurements & AIF Blocks</li>
+              </ul>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Sections */}
+        {/* Sections Accordion */}
         <div className="space-y-6">
           {filteredSections.map((section) => {
             const SectionIcon = section.icon;
             const isExpanded = expandedSections.has(section.id);
-            
+
             return (
-              <Card key={section.id} className="overflow-hidden">
-                <CardHeader 
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+              <Card key={section.id} className="overflow-hidden border-zinc-200 dark:border-zinc-800/80 rounded-2xl shadow-sm dark:shadow-none">
+                <div
+                  className="p-5 sm:p-6 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors flex items-center justify-between gap-4 border-b border-transparent"
                   onClick={() => toggleSection(section.id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <SectionIcon className="h-6 w-6 text-blue-600" />
-                      <div>
-                        <CardTitle className="text-xl">{section.title}</CardTitle>
-                        <CardDescription className="mt-1">{section.description}</CardDescription>
-                      </div>
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 flex items-center justify-center text-purple-500 dark:text-purple-400 flex-shrink-0">
+                      <SectionIcon className="h-5 w-5" />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        {section.variables.length} variables
-                      </span>
+                    <div className="min-w-0">
+                      <h3 className="font-geist font-bold text-base sm:text-lg text-zinc-900 dark:text-white truncate">
+                        {section.title}
+                      </h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                        {section.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-700/60 font-medium">
+                      {section.variables.length} parameters
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-zinc-500">
                       {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-gray-500" />
+                        <ChevronDown className="h-4 w-4" />
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-gray-500" />
+                        <ChevronRight className="h-4 w-4" />
                       )}
                     </div>
                   </div>
-                </CardHeader>
-                
+                </div>
+
                 {isExpanded && (
-                  <CardContent className="border-t bg-gray-50/50">
-                    <div className="space-y-3">
-                      {section.variables.map((variable) => {
-                        const isVariableExpanded = expandedVariables.has(variable.name);
-                        
-                        return (
-                          <div key={variable.name} className="border rounded-lg bg-white">
-                            <div
-                              className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => toggleVariable(variable.name)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-2">
-                                    <code className="text-sm font-mono bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                      {variable.name}
-                                    </code>
-                                    {variable.conditional && (
-                                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                                        Conditional
-                                      </span>
-                                    )}
-                                    {variable.note?.includes('loop') && (
-                                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                                        Loop
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-gray-600 mt-1 text-sm">{variable.description}</p>
-                                </div>
-                                {isVariableExpanded ? (
-                                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                  <div className="p-4 sm:p-6 border-t border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/40 space-y-3">
+                    {section.variables.map((variable) => {
+                      const isVariableExpanded = expandedVariables.has(variable.name);
+
+                      return (
+                        <div key={variable.name} className="border border-zinc-200 dark:border-zinc-800/80 rounded-xl bg-white dark:bg-zinc-900/80 overflow-hidden shadow-sm dark:shadow-none transition-all">
+                          <div
+                            className="p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors flex items-center justify-between gap-4"
+                            onClick={() => toggleVariable(variable.name)}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <code className="text-xs font-mono font-bold bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800/60">
+                                  {variable.name}
+                                </code>
+                                {variable.conditional && (
+                                  <span className="text-[10px] font-mono uppercase bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-800/60">
+                                    Conditional
+                                  </span>
+                                )}
+                                {variable.note?.includes('loop') && (
+                                  <span className="text-[10px] font-mono uppercase bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-800/60">
+                                    Loop Block
+                                  </span>
                                 )}
                               </div>
+                              <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 mt-2 font-normal leading-relaxed">
+                                {variable.description}
+                              </p>
                             </div>
-                            
-                            {isVariableExpanded && (
-                              <div className="border-t p-4 bg-gray-50">
-                                <dl className="grid grid-cols-1 gap-4">
-                                  <div>
-                                    <dt className="text-sm font-medium text-gray-700">Data Type</dt>
-                                    <dd className="text-sm text-gray-900 mt-1 font-mono bg-gray-100 p-2 rounded">
-                                      {variable.dataType}
-                                    </dd>
-                                  </div>
-                                  
-                                  <div>
-                                    <dt className="text-sm font-medium text-gray-700">Example</dt>
-                                    <dd className="text-sm text-gray-900 mt-1 font-mono bg-green-50 p-2 rounded border-l-4 border-green-400">
-                                      {variable.example}
-                                    </dd>
-                                  </div>
-                                  
-                                  {variable.conditional && variable.conditionText && (
-                                    <div>
-                                      <dt className="text-sm font-medium text-orange-700 flex items-center space-x-1">
-                                        <AlertCircle className="h-4 w-4" />
-                                        <span>Condition</span>
-                                      </dt>
-                                      <dd className="text-sm text-orange-800 mt-1 bg-orange-50 p-2 rounded border-l-4 border-orange-400">
-                                        {variable.conditionText}
-                                      </dd>
-                                    </div>
-                                  )}
-                                  
-                                  {variable.note && !variable.conditional && (
-                                    <div>
-                                      <dt className="text-sm font-medium text-gray-700">Note</dt>
-                                      <dd className="text-sm text-gray-600 mt-1 bg-blue-50 p-2 rounded border-l-4 border-blue-400">
-                                        {variable.note}
-                                      </dd>
-                                    </div>
-                                  )}
-                                </dl>
-                              </div>
-                            )}
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-400 flex-shrink-0">
+                              {isVariableExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
+
+                          {isVariableExpanded && (
+                            <div className="border-t border-zinc-200 dark:border-zinc-800/80 p-4 sm:p-5 bg-zinc-50 dark:bg-zinc-950/80 text-xs space-y-4">
+                              <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                  <span className="font-semibold uppercase tracking-wider text-[11px] text-zinc-500 dark:text-zinc-400">Data Type Specification</span>
+                                  <div className="font-mono bg-white dark:bg-zinc-900 p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 break-words">
+                                    {variable.dataType}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <span className="font-semibold uppercase tracking-wider text-[11px] text-zinc-500 dark:text-zinc-400">Standard Example</span>
+                                  <div className="font-mono bg-emerald-50 dark:bg-emerald-950/50 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 break-words font-medium">
+                                    {variable.example}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {variable.conditional && variable.conditionText && (
+                                <div className="space-y-1.5 pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                                  <span className="font-semibold uppercase tracking-wider text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                    <AlertCircle className="h-3.5 w-3.5" />
+                                    <span>Conditional Requirement</span>
+                                  </span>
+                                  <div className="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-lg border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 leading-relaxed">
+                                    {variable.conditionText}
+                                  </div>
+                                </div>
+                              )}
+
+                              {variable.note && !variable.conditional && (
+                                <div className="space-y-1.5 pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                                  <span className="font-semibold uppercase tracking-wider text-[11px] text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
+                                    <Info className="h-3.5 w-3.5" />
+                                    <span>Implementation Note</span>
+                                  </span>
+                                  <div className="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-lg border border-purple-200 dark:border-purple-800/60 text-purple-900 dark:text-purple-200 leading-relaxed">
+                                    {variable.note}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </Card>
             );
@@ -1045,13 +1079,11 @@ export function MPIFDocumentation() {
         </div>
 
         {filteredSections.length === 0 && searchTerm && (
-          <Card className="text-center py-8">
-            <CardContent>
-              <p className="text-gray-500">No variables found matching "{searchTerm}"</p>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12 glass-panel rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">No schema variables found matching "{searchTerm}"</p>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -145,11 +145,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             Substrates
             <Button
               type="button"
+              variant="outline"
               size="sm"
               onClick={() => appendSubstrate({ id: `R${substrateFields.length + 1}`, name: '', amount: undefined as any, amountUnit: '' })}
+              className="h-8 px-3 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Substrate
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Substrate</span>
             </Button>
           </CardTitle>
           <CardDescription>
@@ -158,7 +160,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         </CardHeader>
         <CardContent className="space-y-4">
           {substrateFields.map((field, index) => (
-            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+            <div key={field.id} className="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/60 dark:bg-zinc-800/40 space-y-4 transition-all shadow-sm">
               {/* First Row: ID, Name, Molarity, Molarity Unit */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -316,11 +318,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             Solvents
             <Button
               type="button"
+              variant="outline"
               size="sm"
               onClick={() => appendSolvent({ id: `S${solventFields.length + 1}`, name: '', amount: undefined as any, amountUnit: '' })}
+              className="h-8 px-3 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Solvent
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Solvent</span>
             </Button>
           </CardTitle>
           <CardDescription>
@@ -329,7 +333,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         </CardHeader>
         <CardContent className="space-y-4">
           {solventFields.map((field, index) => (
-            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+            <div key={field.id} className="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/60 dark:bg-zinc-800/40 space-y-4 transition-all shadow-sm">
               {/* First Row: ID, Name, Molarity, Molarity Unit */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -484,6 +488,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             Vessels
             <Button
               type="button"
+              variant="outline"
               size="sm"
               onClick={() => appendVessel({
                 id: `V${vesselFields.length + 1}`,
@@ -493,9 +498,10 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                 type: '',
                 purpose: ''
               })}
+              className="h-8 px-3 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Vessel
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Vessel</span>
             </Button>
           </CardTitle>
           <CardDescription>
@@ -504,7 +510,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         </CardHeader>
         <CardContent className="space-y-4">
           {vesselFields.map((field, index) => (
-            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+            <div key={field.id} className="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/60 dark:bg-zinc-800/40 space-y-4 transition-all shadow-sm">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>ID</Label>
@@ -521,6 +527,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                       <EditableSelect
                         {...field}
                         options={['Vial', 'Jar', 'Autoclave', 'Beaker', 'Flask', 'Centrifuge-tube']}
+                        className={cn(hasValidationError(`vessels[${index}].type`) && "border-red-500 ring-red-500")}
                       />
                     )}
                   />
@@ -540,6 +547,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                         value={field.value}
                         onChange={field.onChange}
                         onBlur={field.onBlur}
+                        className={cn(hasValidationError(`vessels[${index}].volume`) && "border-red-500 ring-red-500")}
                       />
                     )}
                   />
@@ -555,6 +563,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                       <EditableSelect
                         {...field}
                         options={['μL', 'mL', 'L']}
+                        className={cn(hasValidationError(`vessels[${index}].volumeUnit`) && "border-red-500 ring-red-500")}
                       />
                     )}
                   />
@@ -565,6 +574,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Label htmlFor={`vessels.${index}.material`}>Material *</Label>
                   <Input
                     {...register(`vessels.${index}.material`, { required: 'Material is required' })}
+                    className={cn(hasValidationError(`vessels[${index}].material`) && "border-red-500 ring-red-500")}
                   />
                 </div>
 
@@ -578,6 +588,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                       <EditableSelect
                         {...field}
                         options={['Storing', 'Reaction']}
+                        className={cn(hasValidationError(`vessels[${index}].purpose`) && "border-red-500 ring-red-500")}
                       />
                     )}
                   />
@@ -619,11 +630,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             Hardware
             <Button
               type="button"
+              variant="outline"
               size="sm"
               onClick={() => appendHardware({ id: `H${hardwareFields.length + 1}`, purpose: '', generalName: '', productName: '', supplier: '', note: '' })}
+              className="h-8 px-3 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Hardware
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Hardware</span>
             </Button>
           </CardTitle>
           <CardDescription>
@@ -632,7 +645,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         </CardHeader>
         <CardContent className="space-y-4">
           {hardwareFields.map((field, index) => (
-            <div key={field.id} className="p-4 border rounded-lg space-y-4">
+            <div key={field.id} className="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/60 dark:bg-zinc-800/40 space-y-4 transition-all shadow-sm">
               {/* First Row: ID, Purpose, General Name, Delete Button */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -658,6 +671,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                           'Separation',
                           'Drying'
                         ]}
+                        className={cn(hasValidationError(`hardware[${index}].purpose`) && "border-red-500 ring-red-500")}
                       />
                     )}
                   />
@@ -667,6 +681,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                   <Label htmlFor={`hardware.${index}.generalName`}>General Name *</Label>
                   <Input
                     {...register(`hardware.${index}.generalName`, { required: 'General name is required' })}
+                    className={cn(hasValidationError(`hardware[${index}].generalName`) && "border-red-500 ring-red-500")}
                   />
                 </div>
 
@@ -718,11 +733,13 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
             Procedure Steps
             <Button
               type="button"
+              variant="outline"
               size="sm"
               onClick={() => appendStep({ id: `P${stepFields.length + 1}`, type: '', atmosphere: '', detail: '' })}
+              className="h-8 px-3 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Step
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Step</span>
             </Button>
           </CardTitle>
           <CardDescription>
@@ -731,7 +748,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         </CardHeader>
         <CardContent className="space-y-4">
           {stepFields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
+            <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/60 dark:bg-zinc-800/40 shadow-sm transition-all">
               <div className="space-y-2">
                 <Label htmlFor={`steps.${index}.type`}>Step Type *</Label>
                 <Controller
@@ -742,6 +759,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                     <EditableSelect
                       {...field}
                       options={['Preparation', 'Reaction', 'Work-up']}
+                      className={cn(hasValidationError(`steps[${index}].type`) && "border-red-500 ring-red-500")}
                     />
                   )}
                 />
@@ -757,6 +775,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                     <EditableSelect
                       {...field}
                       options={['Air', 'Dry', 'Inert', 'Vacuum']}
+                      className={cn(hasValidationError(`steps[${index}].atmosphere`) && "border-red-500 ring-red-500")}
                     />
                   )}
                 />
@@ -779,7 +798,10 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
                 <Label htmlFor={`steps.${index}.detail`}>Step Details *</Label>
                 <textarea
                   {...register(`steps.${index}.detail`, { required: 'Details are required' })}
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={cn(
+                    "flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    hasValidationError(`steps[${index}].detail`) && "border-red-500 ring-red-500"
+                  )}
                 />
                 {formErrors.steps?.[index]?.detail && (
                   <p className="text-sm text-red-600">{formErrors.steps[index]?.detail?.message}</p>
