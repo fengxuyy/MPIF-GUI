@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { MPIFData, DashboardState, FileState, ValidationResult } from '@/types/mpif';
 import { parseMPIF, stringifyMPIF } from '@/utils/mpifParser';
+import { useAuthStore } from '@/store/authStore';
 
 interface MPIFStore {
   // Data state
@@ -304,7 +305,14 @@ export const useMPIFStore = create<MPIFStore>()(
     },
 
     createNewMPIF: () => {
+      // Pre-fill from ORCID if logged in
+      const orcidUser = useAuthStore.getState().user;
       const newMPIFData = createDefaultMPIFData();
+      if (orcidUser) {
+        newMPIFData.metadata.name   = orcidUser.name  || '';
+        newMPIFData.metadata.email  = orcidUser.email || '';
+        newMPIFData.metadata.orcid  = orcidUser.orcid || '';
+      }
       set({
         mpifData: newMPIFData,
         fileState: {

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import Dashboard from './components/Dashboard';
 import IntroPage from './components/IntroPage';
 import { MPIFDocumentation } from './components/MPIFDocumentation';
+import { OrcidCallback } from './components/OrcidCallback';
 import { useMPIFStore } from './store/mpifStore';
 
 function App() {
@@ -20,6 +21,10 @@ function App() {
           <Route
             path="/documentation"
             element={<MPIFDocumentation />}
+          />
+          <Route
+            path="/orcid-callback"
+            element={<OrcidCallback />}
           />
           <Route
             path="*"

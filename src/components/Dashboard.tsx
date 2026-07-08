@@ -15,7 +15,8 @@ import {
   BookOpen,
   Plus,
   FileUp,
-  Save
+  Save,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +43,7 @@ import { SynthesisDetailsForm } from './forms/SynthesisDetailsForm';
 import { CharacterizationForm } from './forms/CharacterizationForm';
 import { MPIFData } from '@/types/mpif';
 import { useMPIFStore } from '@/store/mpifStore';
+import { useAuthStore } from '@/store/authStore';
 
 interface DashboardProps {
   className?: string;
@@ -87,6 +89,8 @@ export function Dashboard({ className }: DashboardProps) {
   const [exportFileName, setExportFileName] = useState('');
   const [exportFormat, setExportFormat] = useState<'mpif' | 'json'>('mpif');
   const [draftMessage, setDraftMessage] = useState('');
+  const orcidUser = useAuthStore((s) => s.user);
+  const orcidLogout = useAuthStore((s) => s.logout);
   const {
     mpifData,
     dashboard,
@@ -550,16 +554,42 @@ export function Dashboard({ className }: DashboardProps) {
                    </DropdownMenuContent>
                  </DropdownMenu>
 
-                 {/* Documentation Button */}
-                 <Button
-                   variant="ghost"
-                   size="sm"
-                   onClick={handleDocumentationNewTab}
-                   className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
-                 >
-                   Documentation
-                 </Button>
-               </div>
+                  {/* Documentation Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDocumentationNewTab}
+                    className="text-gray-700 hover:text-gray-900 hover:bg-white/50 px-4 py-2 rounded-lg transition-all duration-200"
+                  >
+                    Documentation
+                  </Button>
+
+                  {/* User Chip */}
+                  {orcidUser && (
+                    <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-full border border-slate-200 shadow-sm px-3 py-1.5 group">
+                      {/* Avatar */}
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: '#A6CE39' }}
+                      >
+                        {orcidUser.name
+                          ? orcidUser.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+                          : 'OR'}
+                      </div>
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-xs font-semibold text-slate-700 leading-none">{orcidUser.name || 'Researcher'}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{orcidUser.orcid}</span>
+                      </div>
+                      <button
+                        onClick={orcidLogout}
+                        title="Logout from ORCID"
+                        className="ml-1 p-1 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
              </div>
            </div>
          </div>
