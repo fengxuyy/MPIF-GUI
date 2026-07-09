@@ -1,0 +1,32 @@
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        # Read from the host environment or a .env file in this directory.
+        # ORCID login is disabled in the build if these are unset.
+        VITE_ORCID_CLIENT_ID: ${VITE_ORCID_CLIENT_ID:-}
+        VITE_ORCID_REDIRECT_URI: ${VITE_ORCID_REDIRECT_URI:-}
+        VITE_ORCID_SANDBOX: ${VITE_ORCID_SANDBOX:-}
+    ports:
+      # 8080 locally; set FRONTEND_PORT=80 in .env for a public server
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    # The API is only reachable through the frontend's nginx proxy;
+    # no host port is published.
+    volumes:
+      - mpif-data:/var/lib/mpif
+    restart: unless-stopped
+
+volumes:
+  # Named volume holding the SQLite database (and its WAL/SHM files).
+  # On a Droplet this lives under /var/lib/docker/volumes/ and survives
+  # container rebuilds and image updates.
+  mpif-data:

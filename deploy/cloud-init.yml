@@ -1,0 +1,53 @@
+#cloud-config
+# Provisions a fresh Ubuntu Droplet to run the MPIF Dashboard.
+#
+# Usage (DigitalOcean web UI):
+#   Create Droplet -> Ubuntu 24.04 -> Advanced Options ->
+#   "Add Initialization scripts (free)" -> paste this file.
+#
+# Or with doctl:
+#   doctl compute droplet create mpif-dashboard \
+#     --region syd1 --size s-1vcpu-2gb --image ubuntu-24-04-x64 \
+#     --ssh-keys <your-key-id> --user-data-file deploy/cloud-init.yml
+#
+# A few minutes after boot the app is live on http://<droplet-ip>/.
+# Follow progress with: ssh root@<ip> tail -f /var/log/cloud-init-output.log
+
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - git
+  - ufw
+
+write_files:
+  # Compose reads this .env automatically. FRONTEND_PORT=80 puts the app on
+  # the default HTTP port. Fill in the ORCID values (see .env.local.template)
+  # and run mpif-deploy to enable ORCID login.
+  - path: /opt/mpif-gui.env
+    permissions: "0600"
+    content: |
+      FRONTEND_PORT=80
+      VITE_ORCID_CLIENT_ID=
+      VITE_ORCID_REDIRECT_URI=
+      VITE_ORCID_SANDBOX=false
+
+  # Redeploy helper: pull the latest code and rebuild.
+  - path: /usr/local/bin/mpif-deploy
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      cd /opt/mpif-gui
+      git pull --ff-only
+      docker compose up -d --build
+      docker image prune -f
+
+runcmd:
+  - systemctl enable --now docker
+  - ufw allow OpenSSH
+  - ufw allow 80/tcp
+  - ufw --force enable
+  - git clone https://github.com/fengxuyy/MPIF-GUI.git /opt/mpif-gui
+  - mv /opt/mpif-gui.env /opt/mpif-gui/.env
+  - cd /opt/mpif-gui && docker compose up -d --build

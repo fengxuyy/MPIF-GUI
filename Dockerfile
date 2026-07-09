@@ -24,6 +24,16 @@ RUN cp tsconfig.json tsconfig.prod.json && \
     sed -i 's/"noUnusedLocals": true/"noUnusedLocals": false/g' tsconfig.prod.json && \
     sed -i 's/"noUnusedParameters": true/"noUnusedParameters": false/g' tsconfig.prod.json
 
+# ORCID config is baked in by Vite at build time (.env.local is dockerignored),
+# so it must arrive as build args — docker-compose passes these from the host
+# environment or a .env file next to docker-compose.yml.
+ARG VITE_ORCID_CLIENT_ID
+ARG VITE_ORCID_REDIRECT_URI
+ARG VITE_ORCID_SANDBOX
+ENV VITE_ORCID_CLIENT_ID=$VITE_ORCID_CLIENT_ID \
+    VITE_ORCID_REDIRECT_URI=$VITE_ORCID_REDIRECT_URI \
+    VITE_ORCID_SANDBOX=$VITE_ORCID_SANDBOX
+
 # Build the application with production config
 RUN npx tsc --project tsconfig.prod.json && npx vite build
 
@@ -46,7 +56,21 @@ server {
         index index.html index.htm;
         try_files \$uri \$uri/ /index.html;
     }
-    
+
+    # Proxy API and health checks to the backend container
+    # ("api" is the docker-compose service name)
+    location /api/ {
+        proxy_pass http://api:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location = /health {
+        proxy_pass http://api:8000;
+    }
+
     # Security headers
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
