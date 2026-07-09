@@ -356,7 +356,7 @@ export function Dashboard({ className }: DashboardProps) {
           }
 
           try {
-            await savePublishedFile({
+            const publishedRecord = await savePublishedFile({
               fileName: finalFileName,
               format: exportFormat,
               content: exportedContent,
@@ -364,7 +364,11 @@ export function Dashboard({ className }: DashboardProps) {
               author: orcidUser,
             });
 
-            setFloatingMessage('Publishable file saved to the database.');
+            setFloatingMessage(
+              publishedRecord.doi
+                ? `Publishable file saved to the database — DOI: ${publishedRecord.doi}`
+                : 'Publishable file saved to the database.'
+            );
           } catch (saveError) {
             console.error('Database save failed:', saveError);
             setFloatingMessage('Export completed, but saving to the database failed. Please make sure the backend API is running.');

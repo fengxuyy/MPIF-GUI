@@ -13,6 +13,8 @@ export interface PublishedFileRecord {
     email: string;
   };
   savedAt: string;
+  /** DOI-style identifier assigned by the server at publish time, e.g. "mpif.2026.4f9a1c2b". */
+  doi: string;
 }
 
 export const savePublishedFile = async (params: {

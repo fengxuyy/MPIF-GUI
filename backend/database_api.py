@@ -35,6 +35,9 @@ class PublishedFileCreate(BaseModel):
 class PublishedFileRecord(PublishedFileCreate):
   id: str
   savedAt: str
+  # Internal DOI-style identifier assigned by the server at publish time,
+  # e.g. "mpif.2026.4f9a1c2b". Not registered with an external DOI agency.
+  doi: str
 
 
 app = FastAPI(title="MPIF Published Files API")
@@ -65,6 +68,11 @@ def get_connection() -> sqlite3.Connection:
   return conn
 
 
+def generate_doi() -> str:
+  year = datetime.now(timezone.utc).year
+  return f"mpif.{year}.{uuid4().hex[:8]}"
+
+
 def init_db() -> None:
   with get_connection() as conn:
     conn.execute(
@@ -78,9 +86,27 @@ def init_db() -> None:
         author_orcid TEXT NOT NULL,
         author_name TEXT,
         author_email TEXT,
-        saved_at TEXT NOT NULL
+        saved_at TEXT NOT NULL,
+        doi TEXT
       )
       """
+    )
+
+    # Migration: databases created before the doi column existed.
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(published_files)")}
+    if "doi" not in columns:
+      conn.execute("ALTER TABLE published_files ADD COLUMN doi TEXT")
+
+    # Backfill must run before the unique index is created.
+    missing = conn.execute("SELECT id FROM published_files WHERE doi IS NULL").fetchall()
+    for row in missing:
+      conn.execute(
+        "UPDATE published_files SET doi = ? WHERE id = ?",
+        (generate_doi(), row["id"]),
+      )
+
+    conn.execute(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_published_files_doi ON published_files(doi)"
     )
     conn.execute(
       "CREATE INDEX IF NOT EXISTS idx_published_files_saved_at ON published_files(saved_at DESC)"
@@ -103,6 +129,7 @@ def row_to_record(row: sqlite3.Row) -> PublishedFileRecord:
       email=row["author_email"] or "",
     ),
     savedAt=row["saved_at"],
+    doi=row["doi"] or "",
   )
 
 
@@ -124,33 +151,44 @@ def create_published_file(payload: PublishedFileCreate) -> PublishedFileRecord:
   saved_at = datetime.now(timezone.utc).isoformat()
   mpif_data_json = json.dumps(payload.mpifData, separators=(",", ":"), ensure_ascii=False)
 
-  with get_connection() as conn:
-    conn.execute(
-      """
-      INSERT INTO published_files (
-        id,
-        file_name,
-        format,
-        content,
-        mpif_data_json,
-        author_orcid,
-        author_name,
-        author_email,
-        saved_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      """,
-      (
-        record_id,
-        payload.fileName,
-        payload.format,
-        payload.content,
-        mpif_data_json,
-        payload.author.orcid,
-        payload.author.name,
-        payload.author.email,
-        saved_at,
-      ),
-    )
+  # Retry on the (vanishingly unlikely) DOI collision with the unique index.
+  doi = ""
+  for attempt in range(3):
+    doi = generate_doi()
+    try:
+      with get_connection() as conn:
+        conn.execute(
+          """
+          INSERT INTO published_files (
+            id,
+            file_name,
+            format,
+            content,
+            mpif_data_json,
+            author_orcid,
+            author_name,
+            author_email,
+            saved_at,
+            doi
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """,
+          (
+            record_id,
+            payload.fileName,
+            payload.format,
+            payload.content,
+            mpif_data_json,
+            payload.author.orcid,
+            payload.author.name,
+            payload.author.email,
+            saved_at,
+            doi,
+          ),
+        )
+      break
+    except sqlite3.IntegrityError:
+      if attempt == 2:
+        raise HTTPException(status_code=500, detail="Could not assign a unique DOI")
 
   return PublishedFileRecord(
     id=record_id,
@@ -160,6 +198,7 @@ def create_published_file(payload: PublishedFileCreate) -> PublishedFileRecord:
     mpifData=payload.mpifData,
     author=payload.author,
     savedAt=saved_at,
+    doi=doi,
   )
 
 
@@ -173,6 +212,22 @@ def list_published_files() -> list[PublishedFileRecord]:
     ).fetchall()
 
   return [row_to_record(row) for row in rows]
+
+
+@app.get("/api/published-files/doi/{doi}", response_model=PublishedFileRecord)
+def get_published_file_by_doi(doi: str) -> PublishedFileRecord:
+  init_db()
+
+  with get_connection() as conn:
+    row = conn.execute(
+      "SELECT * FROM published_files WHERE doi = ?",
+      (doi,),
+    ).fetchone()
+
+  if row is None:
+    raise HTTPException(status_code=404, detail="No published file with this DOI")
+
+  return row_to_record(row)
 
 
 @app.get("/api/published-files/{record_id}", response_model=PublishedFileRecord)

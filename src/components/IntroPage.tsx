@@ -124,7 +124,7 @@ function ScientificSpecimenVisual() {
           <div className="p-3.5 rounded-xl bg-zinc-100/90 dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800/60 flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-zinc-800 dark:text-zinc-300">
               <FileText className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-              <span>Specimen Metadata</span>
+              <span>Material Metadata</span>
             </div>
             <span className="text-zinc-500">Standardized</span>
           </div>
@@ -420,7 +420,7 @@ const IntroPage: React.FC<IntroPageProps> = ({ onCreate, onFileUpload, onOpenDat
 
           {!user && (
             <p className="mt-6 text-xs text-zinc-500 dark:text-zinc-500 max-w-xl">
-              Tip: Connecting your ORCID account automatically synchronizes author metadata across new specimen records.
+              Tip: Connecting your ORCID account automatically synchronizes author metadata across new records.
             </p>
           )}
 

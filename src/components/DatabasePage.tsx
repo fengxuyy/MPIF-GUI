@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
+  Copy,
   Database,
   Download,
   FileText,
@@ -98,6 +99,38 @@ export default function DatabasePage() {
     }
   };
 
+  const handleCopyDoi = async (doi: string) => {
+    // navigator.clipboard only exists in secure contexts (HTTPS/localhost);
+    // fall back to execCommand when the app is served over plain HTTP.
+    let copied = false;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(doi);
+        copied = true;
+      } catch {
+        copied = false;
+      }
+    }
+    if (!copied) {
+      const textarea = document.createElement('textarea');
+      textarea.value = doi;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      copied = document.execCommand('copy');
+      textarea.remove();
+    }
+
+    if (copied) {
+      setErrorMessage('');
+      setStatusMessage(`DOI ${doi} copied to clipboard.`);
+    } else {
+      setStatusMessage('');
+      setErrorMessage('Could not copy the DOI to the clipboard.');
+    }
+  };
+
   useEffect(() => {
     loadRecords();
   }, [loadRecords]);
@@ -186,10 +219,11 @@ export default function DatabasePage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[1020px] text-left text-sm">
                 <thead className="border-b border-zinc-200 bg-zinc-50/90 text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-400">
                   <tr>
                     <th className="px-5 py-3 font-semibold">File</th>
+                    <th className="px-5 py-3 font-semibold">DOI</th>
                     <th className="px-5 py-3 font-semibold">Author</th>
                     <th className="px-5 py-3 font-semibold">ORCID</th>
                     <th className="px-5 py-3 font-semibold">Saved</th>
@@ -210,6 +244,23 @@ export default function DatabasePage() {
                             <div className="mt-0.5 text-xs uppercase text-zinc-500 dark:text-zinc-400">{record.format}</div>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        {record.doi ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">{record.doi}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyDoi(record.doi)}
+                              title="Copy DOI"
+                              className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{record.author.name || 'Unknown'}</td>
                       <td className="px-5 py-4 font-mono text-xs text-zinc-500 dark:text-zinc-400">{record.author.orcid || 'Not provided'}</td>
