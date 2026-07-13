@@ -1,0 +1,6 @@
+# TLS-terminating reverse proxy in front of the frontend container.
+# DOMAIN comes from .env (e.g. 203-101-1-2.sslip.io); Caddy provisions
+# and renews a Let's Encrypt certificate for it automatically.
+{$DOMAIN} {
+	reverse_proxy frontend:80
+}

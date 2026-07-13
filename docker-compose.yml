@@ -25,8 +25,32 @@ services:
       - mpif-data:/var/lib/mpif
     restart: unless-stopped
 
+  # Optional HTTPS front (enable with COMPOSE_PROFILES=https in .env).
+  # Terminates TLS for $DOMAIN with an auto-provisioned Let's Encrypt cert.
+  # When enabled, set FRONTEND_PORT to something other than 80 (e.g. 8080)
+  # so Caddy can bind ports 80/443 on the host.
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
 volumes:
   # Named volume holding the SQLite database (and its WAL/SHM files).
   # On a Droplet this lives under /var/lib/docker/volumes/ and survives
   # container rebuilds and image updates.
   mpif-data:
+  # Caddy's certificates and ACME account (survives restarts, avoids
+  # re-issuing certs and hitting Let's Encrypt rate limits).
+  caddy-data:
+  caddy-config:

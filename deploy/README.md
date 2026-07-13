@@ -28,19 +28,38 @@ ssh root@<droplet-ip> tail -f /var/log/cloud-init-output.log
 
 When it finishes, the app is at `http://<droplet-ip>/`.
 
-## Enable ORCID login
+## Enable HTTPS + ORCID login
 
-ORCID settings are baked into the frontend at build time, so they live in
-`/opt/mpif-gui/.env` on the Droplet (created by cloud-init with empty values):
+ORCID requires **HTTPS** redirect URIs (localhost is the only HTTP exception),
+so ORCID login on a server needs TLS. The compose file ships an optional Caddy
+reverse proxy for this, enabled via a compose profile. No domain? Use
+[sslip.io](https://sslip.io): the name `A-B-C-D.sslip.io` resolves to the IP
+`A.B.C.D`, and Caddy can get a real Let's Encrypt certificate for it.
 
-```bash
-ssh root@<droplet-ip>
-nano /opt/mpif-gui/.env    # fill in VITE_ORCID_* (see .env.local.template)
-mpif-deploy                # rebuilds and restarts
-```
+1. Open ports 80 **and 443** in the provider firewall/security group.
+2. Register a public API client in ORCID developer tools
+   (sandbox: sandbox.orcid.org/developer-tools, production:
+   orcid.org/developer-tools) with redirect URI
+   `https://<your-domain>/orcid-callback`, and make sure
+   **"Allow implicit flow" is enabled** — the app has no server-side token
+   exchange.
+3. Configure `.env` on the server (next to docker-compose.yml):
 
-The ORCID redirect URI must be `http://<your-domain-or-ip>/orcid-callback`
-and match what is registered in your ORCID developer tools.
+   ```bash
+   COMPOSE_PROFILES=https
+   FRONTEND_PORT=8080          # Caddy owns 80/443; frontend moves aside
+   DOMAIN=203-101-1-2.sslip.io # or your real domain
+   VITE_ORCID_CLIENT_ID=APP-XXXXXXXXXXXXXXXX
+   VITE_ORCID_REDIRECT_URI=https://203-101-1-2.sslip.io/orcid-callback
+   VITE_ORCID_SANDBOX=false    # true if the client is on sandbox.orcid.org
+   ```
+
+4. Rebuild and restart (`mpif-deploy`, or `docker compose up -d --build`).
+   The app is then at `https://<domain>/`; the first request may take a few
+   seconds while Caddy obtains the certificate.
+
+ORCID settings are baked into the frontend at build time — changing any
+`VITE_*` value requires a rebuild, not just a restart.
 
 ## Updating the app
 
