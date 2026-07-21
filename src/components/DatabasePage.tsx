@@ -6,12 +6,14 @@ import {
   Copy,
   Database,
   Download,
+  Eye,
   FileText,
   RefreshCw,
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
+import { useMPIFStore } from '@/store/mpifStore';
 import { deletePublishedFile, getPublishedFiles, PublishedFileRecord } from '@/store/publishedFilesStore';
 
 const formatSavedDate = (value: string) => {
@@ -51,6 +53,7 @@ const downloadRecord = (record: PublishedFileRecord) => {
 export default function DatabasePage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const loadMPIFData = useMPIFStore((state) => state.loadMPIFData);
   const [records, setRecords] = useState<PublishedFileRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
@@ -97,6 +100,11 @@ export default function DatabasePage() {
     } finally {
       setDeletingRecordId(null);
     }
+  };
+
+  const handleOpenRecord = (record: PublishedFileRecord) => {
+    loadMPIFData(record.mpifData, record.fileName);
+    navigate('/dashboard');
   };
 
   const handleCopyDoi = async (doi: string) => {
@@ -268,6 +276,10 @@ export default function DatabasePage() {
                       <td className="px-5 py-4 text-zinc-600 dark:text-zinc-400">{formatByteSize(record.content)}</td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex justify-end gap-2">
+                          <Button onClick={() => handleOpenRecord(record)} size="sm" variant="outline">
+                            <Eye className="h-3.5 w-3.5" />
+                            View
+                          </Button>
                           <Button onClick={() => downloadRecord(record)} size="sm">
                             <Download className="h-3.5 w-3.5" />
                             Download

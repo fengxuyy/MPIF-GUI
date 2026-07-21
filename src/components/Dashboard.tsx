@@ -19,7 +19,8 @@ import {
   Sun,
   Moon,
   Home,
-  CheckCircle2
+  CheckCircle2,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -147,6 +148,8 @@ export function Dashboard({ className }: DashboardProps) {
     setColumnLayout,
     saveDraft
   } = useMPIFStore();
+
+  const readOnly = (dashboard as any).readOnly;
 
   // Redirect to home page if no MPIF data is loaded (on refresh)
   useEffect(() => {
@@ -294,6 +297,21 @@ export function Dashboard({ className }: DashboardProps) {
     setExportFileName(fileNameWithoutExt);
     setExportFormat('json');
     setExportDialogOpen(true);
+  };
+
+  const handleDownloadReadOnly = () => {
+    if (!mpifData) return;
+    const content = exportMPIF();
+    const baseName = (fileState.fileName || 'published').replace(/\.(mpif|json)$/, '');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${baseName}.mpif`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   const handleExport = () => {
@@ -556,7 +574,12 @@ export function Dashboard({ className }: DashboardProps) {
                 {fileState.fileName || 'untitled.mpif'}
               </span>
               <span className="text-zinc-300 dark:text-zinc-700">|</span>
-              {dashboard.hasUnsavedChanges ? (
+              {readOnly ? (
+                <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-medium">
+                  <Eye className="w-3.5 h-3.5" />
+                  Read-only
+                </span>
+              ) : dashboard.hasUnsavedChanges ? (
                 <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                   Unsaved
@@ -587,6 +610,20 @@ export function Dashboard({ className }: DashboardProps) {
               <Columns className="h-4 w-4" />
             </button>
 
+            {/* Read-only: single Download action, editing controls hidden */}
+            {readOnly ? (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleDownloadReadOnly}
+                disabled={!mpifData}
+                className="h-9 px-3.5"
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                <span>Download</span>
+              </Button>
+            ) : (
+            <>
             {/* Save Draft Action */}
             <Button
               variant="outline"
@@ -631,6 +668,8 @@ export function Dashboard({ className }: DashboardProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
+            )}
 
             {/* Researcher Chip */}
             {orcidUser && (

@@ -15,6 +15,7 @@ interface MPIFStore {
 
   // Actions
   loadMPIFFile: (content: string, fileName: string) => Promise<void>;
+  loadMPIFData: (data: MPIFData, fileName: string) => void;
   createNewMPIF: () => void;
   updateSection: (section: keyof MPIFData, data: any) => void;
 
@@ -360,7 +361,8 @@ export const useMPIFStore = create<MPIFStore>()(
             ...get().dashboard,
             hasUnsavedChanges: false,
             isEditing: true,
-            showValidationErrors: false
+            showValidationErrors: false,
+            readOnly: false
           }
         });
       } catch (error) {
@@ -372,6 +374,31 @@ export const useMPIFStore = create<MPIFStore>()(
           }
         });
       }
+    },
+
+    loadMPIFData: (data: MPIFData, fileName: string) => {
+      // Deep-clone so edits in the dashboard forms don't mutate the record
+      // still held in the database list's state.
+      const clonedData: MPIFData = structuredClone(data);
+
+      set({
+        mpifData: clonedData,
+        fileState: {
+          fileName,
+          lastSaved: new Date(),
+          isLoading: false,
+          error: undefined
+        },
+        validation: validateMPIFData(clonedData),
+        dashboard: {
+          ...get().dashboard,
+          currentSection: 'metadata',
+          hasUnsavedChanges: false,
+          isEditing: false,
+          showValidationErrors: false,
+          readOnly: true
+        }
+      });
     },
 
     createNewMPIF: () => {
@@ -397,7 +424,8 @@ export const useMPIFStore = create<MPIFStore>()(
           hasUnsavedChanges: true,
           isEditing: true,
           showValidationErrors: false,
-          currentSection: 'metadata'
+          currentSection: 'metadata',
+          readOnly: false
         }
       });
     },
@@ -512,7 +540,8 @@ export const useMPIFStore = create<MPIFStore>()(
           currentSection: draft.currentSection || 'metadata',
           hasUnsavedChanges: false,
           isEditing: true,
-          showValidationErrors: false
+          showValidationErrors: false,
+          readOnly: false
         }
       });
 
@@ -546,7 +575,8 @@ export const useMPIFStore = create<MPIFStore>()(
           ...get().dashboard,
           hasUnsavedChanges: false,
           isEditing: false,
-          showValidationErrors: false
+          showValidationErrors: false,
+          readOnly: false
         }
       });
     },

@@ -28,6 +28,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
   const formRef = useRef<HTMLFormElement | null>(null);
   const lastSavedRef = useRef<SynthesisDetails>(data);
   const { dashboard } = useMPIFStore();
+  const readOnly = (dashboard as any).readOnly;
   const {
     register,
     handleSubmit,
@@ -137,6 +138,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         setTimeout(() => saveIfChanged(), 0);
       }
     }}>
+      <fieldset disabled={readOnly} className="contents">
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       {/* Substrates */}
       <Card>
@@ -835,6 +837,7 @@ export function SynthesisDetailsForm({ data, onSave, onUnsavedChange, errors = [
         </CardContent>
       </Card>
       </div>
+      </fieldset>
 
       <div className="flex justify-end space-x-2">
         {/* <Button type="submit" disabled={!isDirty}>

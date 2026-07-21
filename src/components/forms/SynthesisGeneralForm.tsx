@@ -24,6 +24,7 @@ interface SynthesisGeneralFormProps {
 
 export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [] }: SynthesisGeneralFormProps) {
   const { dashboard } = useMPIFStore();
+  const readOnly = (dashboard as any).readOnly;
   const {
     register,
     handleSubmit,
@@ -97,6 +98,7 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
         }
       }}
     >
+      <fieldset disabled={readOnly} className="contents">
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
@@ -383,6 +385,7 @@ export function SynthesisGeneralForm({ data, onSave, onUnsavedChange, errors = [
         </CardContent>
       </Card>
       </div>
+      </fieldset>
     </form>
   );
 }

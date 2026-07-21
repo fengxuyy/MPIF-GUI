@@ -23,6 +23,7 @@ interface MetadataFormProps {
 
 export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: MetadataFormProps) {
   const { dashboard } = useMPIFStore();
+  const readOnly = (dashboard as any).readOnly;
   const {
     register,
     handleSubmit,
@@ -90,6 +91,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
         }
       }}
     >
+      <fieldset disabled={readOnly} className="contents">
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
@@ -262,6 +264,7 @@ export function MetadataForm({ data, onSave, onUnsavedChange, errors = [] }: Met
         </CardContent>
       </Card>
       </div>
+      </fieldset>
     </form>
   );
 }

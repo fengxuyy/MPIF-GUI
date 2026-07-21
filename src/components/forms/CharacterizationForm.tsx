@@ -19,6 +19,7 @@ interface CharacterizationFormProps {
 
 export function CharacterizationForm({ data, onSave, onUnsavedChange }: CharacterizationFormProps) {
   const { dashboard } = useMPIFStore();
+  const readOnly = (dashboard as any).readOnly;
   // Convert structured AIF to string for display
   const getAifString = (aif: any) => {
     if (!aif) return '';
@@ -160,6 +161,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
         }
       }}
     >
+      <fieldset disabled={readOnly} className="contents">
       <div className={(dashboard as any).columnLayout === 'double' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'grid grid-cols-1 gap-6'}>
       {/* PXRD Data */}
       <Card>
@@ -381,6 +383,7 @@ export function CharacterizationForm({ data, onSave, onUnsavedChange }: Characte
           Save Characterization Data
         </Button> */}
       </div>
+      </fieldset>
     </form>
   );
 }

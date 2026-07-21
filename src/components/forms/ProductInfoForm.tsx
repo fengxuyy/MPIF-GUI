@@ -26,6 +26,7 @@ interface ProductInfoFormProps {
 
 export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: ProductInfoFormProps) {
   const { dashboard } = useMPIFStore();
+  const readOnly = (dashboard as any).readOnly;
   // Convert structured CIF to string for display
   const getCifString = (cif: any) => {
     if (!cif) return '';
@@ -137,6 +138,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
         }
       }}
     >
+      <fieldset disabled={readOnly} className="contents">
       <div className={cn('grid gap-6', (dashboard as any).columnLayout === 'double' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
       <Card>
         <CardHeader>
@@ -367,6 +369,7 @@ export function ProductInfoForm({ data, onSave, onUnsavedChange, errors = [] }: 
         </CardContent>
       </Card>
       </div>
+      </fieldset>
 
       <div className="flex justify-end space-x-2">
         {/* <Button type="submit" disabled={!hasChanges}>

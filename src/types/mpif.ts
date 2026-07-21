@@ -225,6 +225,10 @@ export interface DashboardState {
   hasUnsavedChanges: boolean;
   showValidationErrors: boolean;
   columnLayout?: 'single' | 'double';
+  /** When true, the dashboard renders the data for viewing only — all form
+   *  fields are disabled and editing actions are hidden. Set when opening a
+   *  published record from the database. */
+  readOnly?: boolean;
 }
 
 export interface FileState {
